@@ -156,7 +156,7 @@ thorn_Fxpo = thorn_Mxpo_t0/thorn_Mx_t0;
 
 #R only make a matrix to store the variables for plotting
 #n.steps<-360*10
-n.steps<-10
+n.steps<-360*5
 M<-matrix(0,nrow=n.steps,ncol=41)
 
 
@@ -190,41 +190,41 @@ for(i in 1:n.steps) {
   # NOTE: this is not complete - I need to include transport between other compartments i.e. Po to Wo, Po to No, Wo to No for C,N,P & W.
   
   # carbon transport
-  Tc_co_to_no = thorn_Cs_co - thorn_Cs_no / (res_co + res_no) # transport of carbon substrate from the carbon organ to the nitrogen organ
-  Tc_co_to_po = thorn_Cs_co - thorn_Cs_po / (res_co + res_po) # transport of carbon substrate from the carbon organ to the phosphorus organ
-  Tc_co_to_wo = thorn_Cs_co - thorn_Cs_wo / (res_co + res_wo) # transport of carbon substrate from the carbon organ to the water organ
+  Tc_co_to_no = 0.2*(thorn_Cs_co - thorn_Cs_no) / (res_co + res_no) # transport of carbon substrate from the carbon organ to the nitrogen organ
+  Tc_co_to_po = 0.2*(thorn_Cs_co - thorn_Cs_po) / (res_co + res_po) # transport of carbon substrate from the carbon organ to the phosphorus organ
+  Tc_co_to_wo = 0.2*(thorn_Cs_co - thorn_Cs_wo) / (res_co + res_wo) # transport of carbon substrate from the carbon organ to the water organ
   
-  Tc_no_to_po = thorn_Cs_no - thorn_Cs_po / (res_no + res_po) # transport of carbon substrate from the nitrogen organ to the phosphorus organ
-  Tc_no_to_wo = thorn_Cs_no - thorn_Cs_wo / (res_no + res_wo) # transport of carbon substrate from the nitrogen organ to the water organ
-  Tc_po_to_wo = thorn_Cs_po - thorn_Cs_wo / (res_po + res_wo) # transport of carbon substrate from the phosphorus organ to the water organ
+  Tc_no_to_po = 0.2*(thorn_Cs_no - thorn_Cs_po) / (res_no + res_po) # transport of carbon substrate from the nitrogen organ to the phosphorus organ
+  Tc_no_to_wo = 0.2*(thorn_Cs_no - thorn_Cs_wo) / (res_no + res_wo) # transport of carbon substrate from the nitrogen organ to the water organ
+  Tc_po_to_wo = 0.2*(thorn_Cs_po - thorn_Cs_wo) / (res_po + res_wo) # transport of carbon substrate from the phosphorus organ to the water organ
 
-  print(c("Tc_c_n", "Tc_c_p", "Tc_c_w", "Tc_n_p", "Tc_n_w", "Tc_p_w"))
+  print(c("Tc_cn Tc_cp Tc_cw Tc_np Tc_nw Tc_pw"))
   print(round(c(Tc_co_to_no, Tc_co_to_po, Tc_co_to_wo, Tc_no_to_po, Tc_no_to_wo, Tc_po_to_wo),2))
   
   # nitrogen transport
-  Tn_co_to_no = thorn_Ns_co - thorn_Ns_no / (res_co + res_no) # transport of nitrogen substrate from the carbon organ to the nitrogen organ
-  Tn_co_to_po = thorn_Ns_co - thorn_Ns_po / (res_co + res_po) # transport of nitrogen substrate from the carbon organ to the phosphorus organ
-  Tn_co_to_wo = thorn_Ns_co - thorn_Ns_wo / (res_co + res_wo) # transport of nitrogen substrate from the carbon organ to the water organ
+  Tn_co_to_no = 0.2*(thorn_Ns_co - thorn_Ns_no) / (res_co + res_no) # transport of nitrogen substrate from the carbon organ to the nitrogen organ
+  Tn_co_to_po = 0.2*(thorn_Ns_co - thorn_Ns_po) / (res_co + res_po) # transport of nitrogen substrate from the carbon organ to the phosphorus organ
+  Tn_co_to_wo = 0.2*(thorn_Ns_co - thorn_Ns_wo) / (res_co + res_wo) # transport of nitrogen substrate from the carbon organ to the water organ
   
-  Tn_no_to_po = thorn_Ns_no - thorn_Ns_po / (res_no + res_po) # transport of nitrogen substrate from the nitrogen organ to the phosphorus organ
-  Tn_no_to_wo = thorn_Ns_no - thorn_Ns_wo / (res_no + res_wo) # transport of nitrogen substrate from the nitrogen organ to the water organ
-  Tn_po_to_wo = thorn_Ns_po - thorn_Ns_wo / (res_po + res_wo) # transport of nitrogen substrate from the phosphorus organ to the water organ
+  Tn_no_to_po = 0.2*(thorn_Ns_no - thorn_Ns_po) / (res_no + res_po) # transport of nitrogen substrate from the nitrogen organ to the phosphorus organ
+  Tn_no_to_wo = 0.2*(thorn_Ns_no - thorn_Ns_wo) / (res_no + res_wo) # transport of nitrogen substrate from the nitrogen organ to the water organ
+  Tn_po_to_wo = 0.2*(thorn_Ns_po - thorn_Ns_wo) / (res_po + res_wo) # transport of nitrogen substrate from the phosphorus organ to the water organ
   # phosphorus transport
-  Tp_co_to_no = thorn_Ps_co - thorn_Ps_no / (res_co + res_no) # transport of phosphorus substrate from the carbon organ to the nitrogen organ
-  Tp_co_to_po = thorn_Ps_co - thorn_Ps_po / (res_co + res_po) # transport of phosphorus substrate from the carbon organ to the phosphorus organ
-  Tp_co_to_wo = thorn_Ps_co - thorn_Ps_wo / (res_co + res_wo) # transport of phosphorus substrate from the carbon organ to the water organ
+  Tp_co_to_no = 0.2*(thorn_Ps_co - thorn_Ps_no) / (res_co + res_no) # transport of phosphorus substrate from the carbon organ to the nitrogen organ
+  Tp_co_to_po = 0.2*(thorn_Ps_co - thorn_Ps_po) / (res_co + res_po) # transport of phosphorus substrate from the carbon organ to the phosphorus organ
+  Tp_co_to_wo = 0.2*(thorn_Ps_co - thorn_Ps_wo) / (res_co + res_wo) # transport of phosphorus substrate from the carbon organ to the water organ
   
-  Tp_no_to_po = thorn_Ps_no - thorn_Ps_po / (res_no + res_po) # transport of phosphorus substrate from the nitrogen organ to the phosphorus organ
-  Tp_no_to_wo = thorn_Ps_no - thorn_Ps_wo / (res_no + res_wo) # transport of phosphorus substrate from the nitrogen organ to the water organ
-  Tp_po_to_wo = thorn_Ps_po - thorn_Ps_wo / (res_po + res_wo) # transport of phosphorus substrate from the phosphorus organ to the water organ
+  Tp_no_to_po = 0.2*(thorn_Ps_no - thorn_Ps_po) / (res_no + res_po) # transport of phosphorus substrate from the nitrogen organ to the phosphorus organ
+  Tp_no_to_wo = 0.2*(thorn_Ps_no - thorn_Ps_wo) / (res_no + res_wo) # transport of phosphorus substrate from the nitrogen organ to the water organ
+  Tp_po_to_wo = 0.2*(thorn_Ps_po - thorn_Ps_wo) / (res_po + res_wo) # transport of phosphorus substrate from the phosphorus organ to the water organ
   # water transport
-  Tw_co_to_no = thorn_Ws_co - thorn_Ws_no / (res_co + res_no) # transport of water substrate from the carbon organ to the nitrogen organ
-  Tw_co_to_po = thorn_Ws_co - thorn_Ws_po / (res_co + res_po) # transport of water substrate from the carbon organ to the phosphorus organ
-  Tw_co_to_wo = thorn_Ws_co - thorn_Ws_wo / (res_co + res_wo) # transport of water substrate from the carbon organ to the water organ
+  Tw_co_to_no = 0.2*(thorn_Ws_co - thorn_Ws_no) / (res_co + res_no) # transport of water substrate from the carbon organ to the nitrogen organ
+  Tw_co_to_po = 0.2*(thorn_Ws_co - thorn_Ws_po) / (res_co + res_po) # transport of water substrate from the carbon organ to the phosphorus organ
+  Tw_co_to_wo = 0.2*(thorn_Ws_co - thorn_Ws_wo) / (res_co + res_wo) # transport of water substrate from the carbon organ to the water organ
   
-  Tw_no_to_po = thorn_Ws_no - thorn_Ws_po / (res_no + res_po) # transport of water substrate from the carbon organ to the nitrogen organ
-  Tw_no_to_wo = thorn_Ws_no - thorn_Ws_wo / (res_no + res_wo) # transport of water substrate from the carbon organ to the phosphorus organ
-  Tw_po_to_wo = thorn_Ws_po - thorn_Ws_wo / (res_po + res_wo) # transport of water substrate from the carbon organ to the water organ
+  Tw_no_to_po = 0.2*(thorn_Ws_no - thorn_Ws_po) / (res_no + res_po) # transport of water substrate from the carbon organ to the nitrogen organ
+  Tw_no_to_wo = 0.2*(thorn_Ws_no - thorn_Ws_wo) / (res_no + res_wo) # transport of water substrate from the carbon organ to the phosphorus organ
+  Tw_po_to_wo = 0.2*(thorn_Ws_po - thorn_Ws_wo) / (res_po + res_wo) # transport of water substrate from the carbon organ to the water organ
   ##---------------------------------------------------------------------------------------------
   # print(round(c(thorn_lambda_sh,thorn_lambda_rt,thorn_lambda_my,thorn_lambda_rw),2))
   # print(sum(c(thorn_lambda_sh,thorn_lambda_rt,thorn_lambda_my,thorn_lambda_rw)))
