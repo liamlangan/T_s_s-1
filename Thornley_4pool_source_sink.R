@@ -5,7 +5,7 @@
 # This version with carbon organ, nitrogen organ, phosphorus organ and water organ 
 ###############################################################################
 
-# because in TAM allocation coeffs act on Mx the total biomass, there is no need for a storage pool
+# Because in TAM allocation coeffs act on Mx the total biomass, there is no need for a storage pool
 
 ## initial values for fractions of structural dry matter in shoot, root, mycor
 #thorn_Fxsh_t0 = 0.2;
