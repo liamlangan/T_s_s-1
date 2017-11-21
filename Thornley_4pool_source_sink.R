@@ -5,6 +5,10 @@
 # This version with carbon organ, nitrogen organ, phosphorus organ and water organ 
 ###############################################################################
 
+## LL NOTE:
+## running "ssh-add ~/.ssh/id_rsa" in the terminal allows RStudio Github communication via the ssh passkey
+## 
+
 # Because in TAM allocation coeffs act on Mx the total biomass, there is no need for a storage pool
 
 ## initial values for fractions of structural dry matter in shoot, root, mycor
