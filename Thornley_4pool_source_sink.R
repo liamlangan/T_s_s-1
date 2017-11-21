@@ -156,7 +156,7 @@ thorn_Fxpo = thorn_Mxpo_t0/thorn_Mx_t0;
 
 #R only make a matrix to store the variables for plotting
 #n.steps<-360*10
-n.steps<-30
+n.steps<-10
 M<-matrix(0,nrow=n.steps,ncol=41)
 
 
@@ -197,6 +197,10 @@ for(i in 1:n.steps) {
   Tc_no_to_po = thorn_Cs_no - thorn_Cs_po / (res_no + res_po) # transport of carbon substrate from the nitrogen organ to the phosphorus organ
   Tc_no_to_wo = thorn_Cs_no - thorn_Cs_wo / (res_no + res_wo) # transport of carbon substrate from the nitrogen organ to the water organ
   Tc_po_to_wo = thorn_Cs_po - thorn_Cs_wo / (res_po + res_wo) # transport of carbon substrate from the phosphorus organ to the water organ
+
+  print(c("Tc_c_n", "Tc_c_p", "Tc_c_w", "Tc_n_p", "Tc_n_w", "Tc_p_w"))
+  print(round(c(Tc_co_to_no, Tc_co_to_po, Tc_co_to_wo, Tc_no_to_po, Tc_no_to_wo, Tc_po_to_wo),2))
+  
   # nitrogen transport
   Tn_co_to_no = thorn_Ns_co - thorn_Ns_no / (res_co + res_no) # transport of nitrogen substrate from the carbon organ to the nitrogen organ
   Tn_co_to_po = thorn_Ns_co - thorn_Ns_po / (res_co + res_po) # transport of nitrogen substrate from the carbon organ to the phosphorus organ
@@ -436,17 +440,17 @@ par( mar=c(4,4,1,1) )
 #dev.new(width=15,height=7)
 par(mfcol=c(2,2))
 
-matplot(M[,9:12],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
-legend("topleft",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M)[c(9:12)],cex=1.0)
+matplot(M[,c(9, 13, 17, 21)],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
+legend("topleft",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M)[c(9, 13, 17, 21)],cex=1.0)
 
-matplot(M[,13:16],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
-legend("topleft",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M)[c(13:16)],cex=1.0)
+matplot(M[,c(10, 14, 18, 22)],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
+legend("topleft",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M)[c(10, 14, 18, 22)],cex=1.0)
 
-matplot((M[,17:20]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
-legend("topleft",col=mycol,lty=c(rep(1,4)),legend=colnames(M)[c(17:20)],cex=1.0)
+matplot((M[,c(11, 15, 19, 23)]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
+legend("topleft",col=mycol,lty=c(rep(1,4)),legend=colnames(M)[c(11, 15, 19, 23)],cex=1.0)
 
-matplot((M[,21:24]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
-legend("topleft",col=mycol,lty=c(rep(1,4)),legend=colnames(M)[c(21:24)],cex=1.0)
+matplot((M[,c(12, 16, 20, 24)]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
+legend("topleft",col=mycol,lty=c(rep(1,4)),legend=colnames(M)[c(12, 16, 20, 24)],cex=1.0)
 
 graphics.off()
 
