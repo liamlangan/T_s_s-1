@@ -8,9 +8,9 @@
 # Because in TAM allocation coeffs act on Mx the total biomass, there is no need for a storage pool
 
 ## initial values for fractions of structural dry matter in shoot, root, mycor
-#thorn_Fxsh_t0 = 0.2;
-#thorn_Fxrt_t0 = 0.3;
-#thorn_Fxmy_t0 = 0.5;
+# thorn_Fxsh_t0 = 0.2;
+# thorn_Fxrt_t0 = 0.3;
+# thorn_Fxmy_t0 = 0.5;
 ## initial values for mass of structural dry matter in rt, sh, my
 size.factor<-0.1;
 
