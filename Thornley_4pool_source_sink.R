@@ -1,5 +1,5 @@
 # R version of Thornley allcoation model (TAM) as in Thornley and Parsons 2014. J. Theor. Biol. 342: 1-14
-# Rewritten to include elements of Thornley 1998 ;odelling shoot-root relations. The only way forward- 
+# Rewritten to include elements of Thornley 1998 modelling shoot-root relations. The only way forward (https://doi.org/10.1006/anbo.1997.0529) 
 # Author: Steven Higgins
 # Author: Re-coded to add source sink dynamics and remove predefined allocation by Liam Langan 20.11.2017
 # This version with carbon organ, nitrogen organ, phosphorus organ and water organ 
