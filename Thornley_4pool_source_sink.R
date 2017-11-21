@@ -156,7 +156,7 @@ thorn_Fxpo = thorn_Mxpo_t0/thorn_Mx_t0;
 
 #R only make a matrix to store the variables for plotting
 #n.steps<-360*10
-n.steps<-360*5
+n.steps<-110
 M<-matrix(0,nrow=n.steps,ncol=41)
 
 
@@ -279,15 +279,15 @@ for(i in 1:n.steps) {
   # thorn_Up = (thorn_Kp * thorn_Mxpo) / (1 + thorn_Ps/thorn_Jps)
   
   #use this code to simulate a loss in shoots e.g in fire
-  # if(i == 1000)
-  # {
-  # 	thorn_Mxco = thorn_Mxco*0.5;
-  # 	thorn_Mcs = thorn_Mcs*0.5;
-  # 	thorn_Mns = thorn_Mns*0.5;
-  #  thorn_Mps = thorn_Mps*0.5;
-  # 	thorn_Mws = thorn_Mws*0.5;
-  # }
-  
+  if(i == 100)
+  {
+  	thorn_Mxco = thorn_Mxco*0.1;
+  	thorn_Mcs_co = thorn_Mcs_co*0.0;
+  	thorn_Mns_co = thorn_Mns_co*0.0;
+    thorn_Mps_co = thorn_Mps_co*0.0;
+  	thorn_Mws_co = thorn_Mws_co*0.0;
+  }
+
   thorn_Cs_co = thorn_Mcs_co/thorn_Mxco; #2
   thorn_Ns_co = thorn_Mns_co/thorn_Mxco; #2
   thorn_Ps_co = thorn_Mps_co/thorn_Mxco; #2
