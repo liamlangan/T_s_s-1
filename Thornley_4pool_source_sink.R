@@ -5,7 +5,7 @@
 # This version with carbon organ, nitrogen organ, phosphorus organ and water organ 
 ###############################################################################
 
-## LL NOTE:
+## LL NOTE for OSX users:
 ## running "ssh-add ~/.ssh/id_rsa" in the terminal allows RStudio Github communication via the ssh passkey
 ## 
 
@@ -18,10 +18,10 @@
 ## initial values for mass of structural dry matter in rt, sh, my
 size.factor<-0.1;
 
-thorn_Mxco_t0 = 0.2/size.factor;
-thorn_Mxno_t0 = 0.2/size.factor;
-thorn_Mxpo_t0 = 0.5/size.factor; #Thornley uses has 0.5
-thorn_Mxwo_t0 = 0.5/size.factor; #Thornley uses has 0.5
+thorn_Mxco_t0 = 0.25/size.factor;
+thorn_Mxno_t0 = 0.25/size.factor;
+thorn_Mxpo_t0 = 0.25/size.factor; #Thornley uses has 0.5
+thorn_Mxwo_t0 = 0.25/size.factor; #Thornley uses has 0.5
 
 ## intitial values for mass of substrates C,N,P for carbon organ
 thorn_Mcs_co_t0 = 0.025/size.factor;
@@ -52,9 +52,12 @@ thorn_Mws_wo_t0 = 0.25/size.factor;
 #default to go back to
 base =  0.0002*100; #aDGVM produces numbers around 0.00001 to 0.001 for C_net/plant_mass
 thorn_Kc  = base*1.0;
-thorn_Kw  = base*0.0015;
-thorn_Kn  = base*0.25;
-thorn_Kp  = base*0.1;
+thorn_Kw  = 0.0015;
+thorn_Kn  = 0.25;
+thorn_Kp  = 0.1;
+# thorn_Kw  = base*0.0015;
+# thorn_Kn  = base*0.25;
+# thorn_Kp  = base*0.1;
 
 #fiddle with these ones
 #genernally varying these K by factors of 10% to 200% is probably what we want to do to represent
@@ -87,7 +90,7 @@ thorn_Fwx = 0.0001;
 ## other constants
 thorn_q = 0.5;     #control parameter for allocation
 #thorn_Kg = 200	; #structural growth rate constant; Thornley uses 200000
-thorn_Kg = 1	; #structural growth rate constant; Thornley uses 200000
+thorn_Kg = 0.1	; #structural growth rate constant; Thornley uses 200000
 
 mycol=c("green","blue","black","red")
 
@@ -121,9 +124,9 @@ thorn_Mns_wo = thorn_Mns_po_t0;
 thorn_Mps_wo = thorn_Mps_po_t0;
 thorn_Mws_wo = thorn_Mws_po_t0;
 
-## AUX VARIABLE initial values for concentrations of substrates C,N,P
-thorn_Mx_t0 = thorn_Mxco + thorn_Mxno + thorn_Mxpo + thorn_Mxwo;
+thorn_Mx_t0 = thorn_Mxco_t0 + thorn_Mxno_t0 + thorn_Mxpo_t0 + thorn_Mxwo_t0;
 
+## AUX VARIABLE initial values for concentrations of substrates C,N,P
 thorn_Cs_co = thorn_Mcs_co_t0/thorn_Mxco;
 thorn_Ns_co = thorn_Mns_co_t0/thorn_Mxco;
 thorn_Ps_co = thorn_Mps_co_t0/thorn_Mxco;
@@ -153,8 +156,8 @@ thorn_Fxpo = thorn_Mxpo_t0/thorn_Mx_t0;
 
 #R only make a matrix to store the variables for plotting
 #n.steps<-360*10
-n.steps<-180
-M<-matrix(0,nrow=n.steps,ncol=33)
+n.steps<-30
+M<-matrix(0,nrow=n.steps,ncol=41)
 
 
 ## the for loop
@@ -306,50 +309,60 @@ for(i in 1:n.steps) {
   thorn_Fxno = thorn_Mxno/thorn_Mx; #4
   thorn_Fxpo = thorn_Mxpo/thorn_Mx; #4
   
-  M[i,1]<-thorn_Mxco
-  M[i,2]<-thorn_Mxwo
-  M[i,3]<-thorn_Mxno
-  M[i,4]<-thorn_Mxpo
+  M[i,1] <- thorn_Mxco
+  M[i,2] <- thorn_Mxwo
+  M[i,3] <- thorn_Mxno
+  M[i,4] <- thorn_Mxpo
   
-  M[i,5]<-thorn_Fxco
-  M[i,6]<-thorn_Fxwo
-  M[i,7]<-thorn_Fxno
-  M[i,8]<-thorn_Fxpo
+  M[i,5] <- thorn_Fxco
+  M[i,6] <- thorn_Fxwo
+  M[i,7] <- thorn_Fxno
+  M[i,8] <- thorn_Fxpo
   
-  M[i,9]<-1
-  M[i,10]<-1
-  M[i,11]<-1
-  M[i,12]<-1
+  M[i,9]  <- thorn_Mcs_co
+  M[i,10] <- thorn_Mws_co
+  M[i,11] <- thorn_Mns_co
+  M[i,12] <- thorn_Mps_co
   
-  M[i,13]<-thorn_Mcs_co
-  M[i,14]<-thorn_Mws_co
-  M[i,15]<-thorn_Mns_co
-  M[i,16]<-thorn_Mps_co
+  M[i,13] <- thorn_Mcs_no
+  M[i,14] <- thorn_Mws_no
+  M[i,15] <- thorn_Mns_no
+  M[i,16] <- thorn_Mps_no
+
+  M[i,17] <- thorn_Mcs_po
+  M[i,18] <- thorn_Mws_po
+  M[i,19] <- thorn_Mns_po
+  M[i,20] <- thorn_Mps_po
+
+  M[i,21] <- thorn_Mcs_wo
+  M[i,22] <- thorn_Mws_wo
+  M[i,23] <- thorn_Mns_wo
+  M[i,24] <- thorn_Mps_wo
   
-  M[i,17]<-thorn_Cs_co
-  M[i,18]<-thorn_Ws_co
-  M[i,19]<-thorn_Ns_co
-  M[i,20]<-thorn_Ps_co
+  M[i,25] <- thorn_Cs_co
+  M[i,26] <- thorn_Ws_co
+  M[i,27] <- thorn_Ns_co
+  M[i,28] <- thorn_Ps_co
   
-  M[i,21]<-thorn_Cs_co/thorn_Ns_co
-  M[i,22]<-thorn_Cs_co/thorn_Ps_co
-  M[i,23]<-thorn_Ns_co/thorn_Ps_co
+  M[i,29] <- thorn_Cs_co/thorn_Ns_co
+  M[i,30] <- thorn_Cs_co/thorn_Ps_co
+  M[i,31] <- thorn_Ns_co/thorn_Ps_co
   
-  M[i,24]<-Tc_co_to_no
-  M[i,25]<-Tc_co_to_po
-  M[i,26]<-Tc_co_to_wo
-  M[i,27]<-Tc_no_to_po
-  M[i,28]<-Tc_no_to_wo
-  M[i,29]<-Tc_po_to_wo
+  M[i,32] <- Tc_co_to_no
+  M[i,33] <- Tc_co_to_po
+  M[i,34] <- Tc_co_to_wo
+  M[i,35] <- Tc_no_to_po
+  M[i,36] <- Tc_no_to_wo
+  M[i,37] <- Tc_po_to_wo
   
-  M[i,30]<-thorn_G_co
-  M[i,31]<-thorn_G_no
-  M[i,32]<-thorn_G_po
-  M[i,33]<-thorn_G_wo
+  M[i,38] <- thorn_G_co
+  M[i,39] <- thorn_G_no
+  M[i,40] <- thorn_G_po
+  M[i,41] <- thorn_G_wo
   
 }
 colnames(M)<-c(
-  "Mxco"
+   "Mxco"
   ,"Mxwo"
   ,"Mxno"
   ,"Mxpo"
@@ -357,14 +370,22 @@ colnames(M)<-c(
   ,"Fxwo"
   ,"Fxno"
   ,"Fxpo"
-  ,"Lambda.co"
-  ,"Lambda.wo"
-  ,"Lambda.no"
-  ,"Lambda.po"
-  ,"Mcs_co"
-  ,"Mws_co"
-  ,"Mns_co"
-  ,"Mps_co"
+  ,"thorn_Mcs_co"
+  ,"thorn_Mws_co"
+  ,"thorn_Mns_co"
+  ,"thorn_Mps_co"
+  ,"thorn_Mcs_no"
+  ,"thorn_Mws_no"
+  ,"thorn_Mns_no"
+  ,"thorn_Mps_no"
+  ,"thorn_Mcs_po"
+  ,"thorn_Mws_po"
+  ,"thorn_Mns_po"
+  ,"thorn_Mps_po"
+  ,"thorn_Mcs_wo"
+  ,"thorn_Mws_wo"
+  ,"thorn_Mns_wo"
+  ,"thorn_Mps_wo"
   ,"Cs_co"
   ,"Ws_co"
   ,"Ns_co"
@@ -391,29 +412,43 @@ graphics.off()
 pdf( file="TAM_removing_CO_source_sink.pdf", height=6, width=8 )
 par( mar=c(4,4,1,1) )
 #dev.new(width=15,height=7)
-par(mfcol=c(2,3))
-matplot(M[,5:8],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
-#matplot(M[,9:12],type="l",lty=c(rep(2,4)),col=mycol,lwd=2,add=T)
-#legend("topleft",col=1:3,lty=c(rep(1,3)),legend=colnames(M)[5:7])
-legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M)[5:8],cex=1.0)
+par(mfcol=c(2,2))
 
 matplot(log(M[,1:4]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2)
 legend("topleft",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M)[c(1:4)],cex=1.0)
 
-matplot(log(M[,13:16]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
+matplot(M[,5:8],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M)[5:8],cex=1.0)
+
+matplot((M[,32:34]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F)
+abline(h=0, lty=2, lwd=0.5)
+legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M)[c(32:34)],cex=1.0)
+
+matplot((M[,38:41]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F)
+legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M)[c(38:41)],cex=1.0)
+
+graphics.off()
+
+
+graphics.off()
+pdf( file="TAM_removing_CO_source_sink_substrate_concentrations.pdf", height=6, width=8 )
+par( mar=c(4,4,1,1) )
+#dev.new(width=15,height=7)
+par(mfcol=c(2,2))
+
+matplot(M[,9:12],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
+legend("topleft",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M)[c(9:12)],cex=1.0)
+
+matplot(M[,13:16],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
 legend("topleft",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M)[c(13:16)],cex=1.0)
 
 matplot((M[,17:20]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
 legend("topleft",col=mycol,lty=c(rep(1,4)),legend=colnames(M)[c(17:20)],cex=1.0)
 
-matplot((M[,21:23]),type="l",lty=c(rep(1,3)),col=mycol[1:3],lwd=2,add=F)
-legend("topleft",col=mycol[1:3],lty=c(rep(1,3)),legend=colnames(M)[c(21:23)],cex=1.0)
-
-matplot((M[,30:33]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F)
-legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M)[c(30:33)],cex=1.0)
+matplot((M[,21:24]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
+legend("topleft",col=mycol,lty=c(rep(1,4)),legend=colnames(M)[c(21:24)],cex=1.0)
 
 graphics.off()
-
 
 
 print(tail(M))
