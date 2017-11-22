@@ -156,12 +156,19 @@ thorn_Fxpo = thorn_Mxpo_t0/thorn_Mx_t0;
 
 #R only make a matrix to store the variables for plotting
 #n.steps<-360*10
-n.steps<-110
+n.steps<-10000
 M<-matrix(0,nrow=n.steps,ncol=41)
 
 
 ## the for loop
 for(i in 1:n.steps) {
+  
+  base =  0.0002*100; #aDGVM produces numbers around 0.00001 to 0.001 for C_net/plant_mass
+  thorn_Kc  = base*1.0;
+  thorn_Kw  = 0.0015;
+#  thorn_Kn  = 0.25 - pmin(0.05,(i*0.1));
+  thorn_Kn  = 0.25;
+  thorn_Kp  = 0.1;
   
   thorn_Mx = thorn_Mxco + thorn_Mxwo + thorn_Mxno + thorn_Mxpo ; #3
   
@@ -279,14 +286,14 @@ for(i in 1:n.steps) {
   # thorn_Up = (thorn_Kp * thorn_Mxpo) / (1 + thorn_Ps/thorn_Jps)
   
   #use this code to simulate a loss in shoots e.g in fire
-  if(i == 100)
-  {
-  	thorn_Mxco = thorn_Mxco*0.1;
-  	thorn_Mcs_co = thorn_Mcs_co*0.0;
-  	thorn_Mns_co = thorn_Mns_co*0.0;
-    thorn_Mps_co = thorn_Mps_co*0.0;
-  	thorn_Mws_co = thorn_Mws_co*0.0;
-  }
+  # if(i == 100)
+  # {
+  # 	thorn_Mxco = thorn_Mxco*0.1;
+  # 	thorn_Mcs_co = thorn_Mcs_co*0.0;
+  # 	thorn_Mns_co = thorn_Mns_co*0.0;
+  #   thorn_Mps_co = thorn_Mps_co*0.0;
+  # 	thorn_Mws_co = thorn_Mws_co*0.0;
+  # }
 
   thorn_Cs_co = thorn_Mcs_co/thorn_Mxco; #2
   thorn_Ns_co = thorn_Mns_co/thorn_Mxco; #2
@@ -428,8 +435,14 @@ matplot((M[,32:34]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F)
 abline(h=0, lty=2, lwd=0.5)
 legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M)[c(32:34)],cex=1.0)
 
-matplot((M[,38:41]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F)
-legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M)[c(38:41)],cex=1.0)
+# matplot((M[,38:41]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F)
+# legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M)[c(38:41)],cex=1.0)
+
+matplot(M[,38]/(M[,38]+M[,39]+M[,40]+M[,41]),type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(0,1))
+matplot(M[,41]/(M[,38]+M[,39]+M[,40]+M[,41]),type="l",lty=c(rep(1)),col=mycol[2],lwd=2,add=T, ylim=c(0,1))
+matplot(M[,40]/(M[,38]+M[,39]+M[,40]+M[,41]),type="l",lty=c(rep(1)),col=mycol[3],lwd=2,add=T, ylim=c(0,1))
+matplot(M[,41]/(M[,38]+M[,39]+M[,40]+M[,41]),type="l",lty=c(rep(1)),col=mycol[4],lwd=2,add=T, ylim=c(0,1))
+legend("topleft",col=mycol[1:4],lty=c(rep(1)),legend=c("Alloc CO","Alloc WO","Alloc NO","Alloc PO"),cex=1.0)
 
 graphics.off()
 
