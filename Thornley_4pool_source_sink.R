@@ -156,8 +156,8 @@ thorn_Fxpo = thorn_Mxpo_t0/thorn_Mx_t0;
 
 #R only make a matrix to store the variables for plotting
 #n.steps<-360*10
-n.steps<-1000
-M<-matrix(0,nrow=n.steps,ncol=41)
+n.steps<-200
+M<-matrix(0,nrow=n.steps,ncol=71)
 
 wrapper_fn_mod <- function(uptake)
 {
@@ -168,7 +168,7 @@ wrapper_fn_mod <- function(uptake)
 
   base =  0.0002*100; #aDGVM produces numbers around 0.00001 to 0.001 for C_net/plant_mass
   thorn_Kc  = base*1.0;
-  thorn_Kw  = 0.0015;
+  thorn_Kw  = 0.015;
   if(uptake_change == 1)
   {
     thorn_Kn  = 0.0001;
@@ -256,25 +256,45 @@ wrapper_fn_mod <- function(uptake)
   thorn_Up = thorn_Kp * thorn_Mxpo;
   thorn_Uw = thorn_Kw * thorn_Mxwo;
   
-  thorn_Mcs_co = max(0.0001, thorn_Mcs_co + thorn_Uc);
-  # thorn_Mns_co = max(0.0001, thorn_Mns_co - thorn_Fnx * thorn_G_co );
-  # thorn_Mps_co = max(0.0001, thorn_Mps_co - thorn_Fpx * thorn_G_co );
-  # thorn_Mws_co = max(0.0001, thorn_Mws_co - thorn_Fwx * thorn_G_co );
+  # thorn_Mcs_co = max(0.0001, thorn_Mcs_co + thorn_Uc);
+  # # thorn_Mns_co = max(0.0001, thorn_Mns_co - thorn_Fnx * thorn_G_co );
+  # # thorn_Mps_co = max(0.0001, thorn_Mps_co - thorn_Fpx * thorn_G_co );
+  # # thorn_Mws_co = max(0.0001, thorn_Mws_co - thorn_Fwx * thorn_G_co );
+  # 
+  # # thorn_Mcs_no = max(0.0001, thorn_Mcs_no - thorn_Fcx * thorn_G_no );
+  # thorn_Mns_no = max(0.0001, thorn_Mns_no + thorn_Un );
+  # # thorn_Mps_no = max(0.0001, thorn_Mps_no - thorn_Fpx * thorn_G_no );
+  # # thorn_Mws_no = max(0.0001, thorn_Mws_no - thorn_Fwx * thorn_G_no );
+  # 
+  # # thorn_Mcs_po = max(0.0001, thorn_Mcs_po - thorn_Fcx * thorn_G_po );
+  # # thorn_Mns_po = max(0.0001, thorn_Mns_po - thorn_Fnx * thorn_G_po );
+  # thorn_Mps_po = max(0.0001, thorn_Mps_po + thorn_Up );
+  # # thorn_Mws_po = max(0.0001, thorn_Mws_po - thorn_Fwx * thorn_G_po );
+  # 
+  # # thorn_Mcs_wo = max(0.0001, thorn_Mcs_wo - thorn_Fcx * thorn_G_wo );
+  # # thorn_Mns_wo = max(0.0001, thorn_Mns_wo - thorn_Fnx * thorn_G_wo );
+  # # thorn_Mps_wo = max(0.0001, thorn_Mps_wo - thorn_Fpx * thorn_G_wo );
+  # thorn_Mws_wo = max(0.0001, thorn_Mws_wo + thorn_Uw );
   
-  # thorn_Mcs_no = max(0.0001, thorn_Mcs_no - thorn_Fcx * thorn_G_no );
-  thorn_Mns_no = max(0.0001, thorn_Mns_no + thorn_Un );
-  # thorn_Mps_no = max(0.0001, thorn_Mps_no - thorn_Fpx * thorn_G_no );
-  # thorn_Mws_no = max(0.0001, thorn_Mws_no - thorn_Fwx * thorn_G_no );
+  thorn_Mcs_co = max(0.0001, thorn_Mcs_co + thorn_Uc - thorn_Fcx * thorn_G_co - Tc_co_to_no - Tc_co_to_po - Tc_co_to_wo);
+  thorn_Mns_co = max(0.0001, thorn_Mns_co - thorn_Fnx * thorn_G_co - Tn_co_to_no - Tn_co_to_po - Tn_co_to_wo);
+  thorn_Mps_co = max(0.0001, thorn_Mps_co - thorn_Fpx * thorn_G_co - Tp_co_to_no - Tp_co_to_po - Tp_co_to_wo);
+  thorn_Mws_co = max(0.0001, thorn_Mws_co - thorn_Fwx * thorn_G_co - Tw_co_to_no - Tw_co_to_po - Tw_co_to_wo);
   
-  # thorn_Mcs_po = max(0.0001, thorn_Mcs_po - thorn_Fcx * thorn_G_po );
-  # thorn_Mns_po = max(0.0001, thorn_Mns_po - thorn_Fnx * thorn_G_po );
-  thorn_Mps_po = max(0.0001, thorn_Mps_po + thorn_Up );
-  # thorn_Mws_po = max(0.0001, thorn_Mws_po - thorn_Fwx * thorn_G_po );
+  thorn_Mcs_no = max(0.0001, thorn_Mcs_no - thorn_Fcx * thorn_G_no - Tc_no_to_po - Tc_no_to_wo + Tc_co_to_no);
+  thorn_Mns_no = max(0.0001, thorn_Mns_no + thorn_Un - thorn_Fnx * thorn_G_no + Tn_co_to_no - Tn_no_to_po - Tn_no_to_wo);
+  thorn_Mps_no = max(0.0001, thorn_Mps_no - thorn_Fpx * thorn_G_no - Tp_no_to_po - Tp_no_to_wo + Tp_co_to_no);
+  thorn_Mws_no = max(0.0001, thorn_Mws_no - thorn_Fwx * thorn_G_no - Tw_no_to_po - Tw_no_to_wo + Tw_co_to_no);
   
-  # thorn_Mcs_wo = max(0.0001, thorn_Mcs_wo - thorn_Fcx * thorn_G_wo );
-  # thorn_Mns_wo = max(0.0001, thorn_Mns_wo - thorn_Fnx * thorn_G_wo );
-  # thorn_Mps_wo = max(0.0001, thorn_Mps_wo - thorn_Fpx * thorn_G_wo );
-  thorn_Mws_wo = max(0.0001, thorn_Mws_wo + thorn_Uw );
+  thorn_Mcs_po = max(0.0001, thorn_Mcs_po - thorn_Fcx * thorn_G_po - Tc_po_to_wo + Tc_no_to_po + Tc_co_to_po);
+  thorn_Mns_po = max(0.0001, thorn_Mns_po - thorn_Fnx * thorn_G_po - Tn_po_to_wo + Tn_no_to_po + Tn_co_to_po);
+  thorn_Mps_po = max(0.0001, thorn_Mps_po + thorn_Up - thorn_Fnx * thorn_G_po - Tn_po_to_wo + Tn_no_to_po + Tn_co_to_po);
+  thorn_Mws_po = max(0.0001, thorn_Mws_po - thorn_Fwx * thorn_G_po - Tw_po_to_wo + Tw_no_to_po + Tw_co_to_po);
+  
+  thorn_Mcs_wo = max(0.0001, thorn_Mcs_wo - thorn_Fcx * thorn_G_wo + Tc_co_to_wo + Tc_no_to_wo + Tc_po_to_wo);
+  thorn_Mns_wo = max(0.0001, thorn_Mns_wo - thorn_Fnx * thorn_G_wo + Tn_co_to_wo + Tn_no_to_wo + Tn_po_to_wo);
+  thorn_Mps_wo = max(0.0001, thorn_Mps_wo - thorn_Fpx * thorn_G_wo + Tp_co_to_wo + Tp_no_to_wo + Tp_po_to_wo);
+  thorn_Mws_wo = max(0.0001, thorn_Mws_wo + thorn_Uw - thorn_Fwx * thorn_G_wo + Tw_co_to_wo + Tw_no_to_wo + Tw_po_to_wo);
   
   thorn_Cs_co = thorn_Mcs_co/thorn_Mxco; #2
   thorn_Ns_co = thorn_Mns_co/thorn_Mxco; #2
@@ -303,25 +323,25 @@ wrapper_fn_mod <- function(uptake)
   thorn_G_po = thorn_Kg*thorn_Mxpo*thorn_Cs_po*thorn_Ns_po*thorn_Ps_po*thorn_Ws_po ; # see 13 and 12
   thorn_G_wo = thorn_Kg*thorn_Mxwo*thorn_Cs_wo*thorn_Ns_wo*thorn_Ps_wo*thorn_Ws_wo ; # see 13 and 12
 
-  thorn_Mcs_co = max(0.0001, thorn_Mcs_co - thorn_Fcx * thorn_G_co - Tc_co_to_no - Tc_co_to_po - Tc_co_to_wo);
-  thorn_Mns_co = max(0.0001, thorn_Mns_co - thorn_Fnx * thorn_G_co - Tn_co_to_no - Tn_co_to_po - Tn_co_to_wo);
-  thorn_Mps_co = max(0.0001, thorn_Mps_co - thorn_Fpx * thorn_G_co - Tp_co_to_no - Tp_co_to_po - Tp_co_to_wo);
-  thorn_Mws_co = max(0.0001, thorn_Mws_co - thorn_Fwx * thorn_G_co - Tw_co_to_no - Tw_co_to_po - Tw_co_to_wo);
-  
-  thorn_Mcs_no = max(0.0001, thorn_Mcs_no - thorn_Fcx * thorn_G_no - Tc_no_to_po - Tc_no_to_wo + Tc_co_to_no);
-  thorn_Mns_no = max(0.0001, thorn_Mns_no - thorn_Fnx * thorn_G_no + Tn_co_to_no - Tn_no_to_po - Tn_no_to_wo);
-  thorn_Mps_no = max(0.0001, thorn_Mps_no - thorn_Fpx * thorn_G_no - Tp_no_to_po - Tp_no_to_wo + Tp_co_to_no);
-  thorn_Mws_no = max(0.0001, thorn_Mws_no - thorn_Fwx * thorn_G_no - Tw_no_to_po - Tw_no_to_wo + Tw_co_to_no);
-  
-  thorn_Mcs_po = max(0.0001, thorn_Mcs_po - thorn_Fcx * thorn_G_po - Tc_po_to_wo + Tc_no_to_po + Tc_co_to_po);
-  thorn_Mns_po = max(0.0001, thorn_Mns_po - thorn_Fnx * thorn_G_po - Tn_po_to_wo + Tn_no_to_po + Tn_co_to_po);
-  thorn_Mps_po = max(0.0001, thorn_Mps_po - thorn_Fnx * thorn_G_po - Tn_po_to_wo + Tn_no_to_po + Tn_co_to_po);
-  thorn_Mws_po = max(0.0001, thorn_Mws_po - thorn_Fwx * thorn_G_po - Tw_po_to_wo + Tw_no_to_po + Tw_co_to_po);
-  
-  thorn_Mcs_wo = max(0.0001, thorn_Mcs_wo - thorn_Fcx * thorn_G_wo + Tc_co_to_wo + Tc_no_to_wo + Tc_po_to_wo);
-  thorn_Mns_wo = max(0.0001, thorn_Mns_wo - thorn_Fnx * thorn_G_wo + Tn_co_to_wo + Tn_no_to_wo + Tn_po_to_wo);
-  thorn_Mps_wo = max(0.0001, thorn_Mps_wo - thorn_Fpx * thorn_G_wo + Tp_co_to_wo + Tp_no_to_wo + Tp_po_to_wo);
-  thorn_Mws_wo = max(0.0001, thorn_Mws_wo - thorn_Fwx * thorn_G_wo + Tw_co_to_wo + Tw_no_to_wo + Tw_po_to_wo);
+  # thorn_Mcs_co = max(0.0001, thorn_Mcs_co - thorn_Fcx * thorn_G_co - Tc_co_to_no - Tc_co_to_po - Tc_co_to_wo);
+  # thorn_Mns_co = max(0.0001, thorn_Mns_co - thorn_Fnx * thorn_G_co - Tn_co_to_no - Tn_co_to_po - Tn_co_to_wo);
+  # thorn_Mps_co = max(0.0001, thorn_Mps_co - thorn_Fpx * thorn_G_co - Tp_co_to_no - Tp_co_to_po - Tp_co_to_wo);
+  # thorn_Mws_co = max(0.0001, thorn_Mws_co - thorn_Fwx * thorn_G_co - Tw_co_to_no - Tw_co_to_po - Tw_co_to_wo);
+  # 
+  # thorn_Mcs_no = max(0.0001, thorn_Mcs_no - thorn_Fcx * thorn_G_no - Tc_no_to_po - Tc_no_to_wo + Tc_co_to_no);
+  # thorn_Mns_no = max(0.0001, thorn_Mns_no - thorn_Fnx * thorn_G_no + Tn_co_to_no - Tn_no_to_po - Tn_no_to_wo);
+  # thorn_Mps_no = max(0.0001, thorn_Mps_no - thorn_Fpx * thorn_G_no - Tp_no_to_po - Tp_no_to_wo + Tp_co_to_no);
+  # thorn_Mws_no = max(0.0001, thorn_Mws_no - thorn_Fwx * thorn_G_no - Tw_no_to_po - Tw_no_to_wo + Tw_co_to_no);
+  # 
+  # thorn_Mcs_po = max(0.0001, thorn_Mcs_po - thorn_Fcx * thorn_G_po - Tc_po_to_wo + Tc_no_to_po + Tc_co_to_po);
+  # thorn_Mns_po = max(0.0001, thorn_Mns_po - thorn_Fnx * thorn_G_po - Tn_po_to_wo + Tn_no_to_po + Tn_co_to_po);
+  # thorn_Mps_po = max(0.0001, thorn_Mps_po - thorn_Fnx * thorn_G_po - Tn_po_to_wo + Tn_no_to_po + Tn_co_to_po);
+  # thorn_Mws_po = max(0.0001, thorn_Mws_po - thorn_Fwx * thorn_G_po - Tw_po_to_wo + Tw_no_to_po + Tw_co_to_po);
+  # 
+  # thorn_Mcs_wo = max(0.0001, thorn_Mcs_wo - thorn_Fcx * thorn_G_wo + Tc_co_to_wo + Tc_no_to_wo + Tc_po_to_wo);
+  # thorn_Mns_wo = max(0.0001, thorn_Mns_wo - thorn_Fnx * thorn_G_wo + Tn_co_to_wo + Tn_no_to_wo + Tn_po_to_wo);
+  # thorn_Mps_wo = max(0.0001, thorn_Mps_wo - thorn_Fpx * thorn_G_wo + Tp_co_to_wo + Tp_no_to_wo + Tp_po_to_wo);
+  # thorn_Mws_wo = max(0.0001, thorn_Mws_wo - thorn_Fwx * thorn_G_wo + Tw_co_to_wo + Tw_no_to_wo + Tw_po_to_wo);
   
   # thorn_Mcs = max(0, thorn_Mcs + thorn_Uc - thorn_Fcx * thorn_G); # 12
   # thorn_Mns = max(0, thorn_Mns + thorn_Un - thorn_Fnx * thorn_G); # 12
@@ -340,15 +360,15 @@ wrapper_fn_mod <- function(uptake)
   # thorn_Un = (thorn_Kn * thorn_Mxno) / (1 + thorn_Ns/thorn_Jns)
   # thorn_Up = (thorn_Kp * thorn_Mxpo) / (1 + thorn_Ps/thorn_Jps)
   
-  #use this code to simulate a loss in shoots e.g in fire
-  # if(i == 100)
-  # {
-  # 	thorn_Mxco = thorn_Mxco*0.1;
-  # 	thorn_Mcs_co = thorn_Mcs_co*0.0;
-  # 	thorn_Mns_co = thorn_Mns_co*0.0;
-  #   thorn_Mps_co = thorn_Mps_co*0.0;
-  # 	thorn_Mws_co = thorn_Mws_co*0.0;
-  # }
+#  use this code to simulate a loss in shoots e.g in fire
+  if(i == 100)
+  {
+  	thorn_Mxco = thorn_Mxco*0.1;
+  	thorn_Mcs_co = thorn_Mcs_co*0.0;
+  	thorn_Mns_co = thorn_Mns_co*0.0;
+    thorn_Mps_co = thorn_Mps_co*0.0;
+  	thorn_Mws_co = thorn_Mws_co*0.0;
+  }
 
   thorn_Cs_co = thorn_Mcs_co/thorn_Mxco; #2
   thorn_Ns_co = thorn_Mns_co/thorn_Mxco; #2
@@ -410,21 +430,58 @@ wrapper_fn_mod <- function(uptake)
   M[i,27] <<- thorn_Ns_co
   M[i,28] <<- thorn_Ps_co
   
-  M[i,29] <<- thorn_Cs_co/thorn_Ns_co
-  M[i,30] <<- thorn_Cs_co/thorn_Ps_co
-  M[i,31] <<- thorn_Ns_co/thorn_Ps_co
+  M[i,29] <<- thorn_Cs_no
+  M[i,30] <<- thorn_Ws_no
+  M[i,31] <<- thorn_Ns_no
+  M[i,32] <<- thorn_Ps_no
   
-  M[i,32] <<- Tc_co_to_no
-  M[i,33] <<- Tc_co_to_po
-  M[i,34] <<- Tc_co_to_wo
-  M[i,35] <<- Tc_no_to_po
-  M[i,36] <<- Tc_no_to_wo
-  M[i,37] <<- Tc_po_to_wo
+  M[i,33] <<- thorn_Cs_po
+  M[i,34] <<- thorn_Ws_po
+  M[i,35] <<- thorn_Ns_po
+  M[i,36] <<- thorn_Ps_po
   
-  M[i,38] <<- thorn_G_co
-  M[i,39] <<- thorn_G_no
-  M[i,40] <<- thorn_G_po
-  M[i,41] <<- thorn_G_wo
+  M[i,37] <<- thorn_Cs_wo
+  M[i,38] <<- thorn_Ws_wo
+  M[i,39] <<- thorn_Ns_wo
+  M[i,40] <<- thorn_Ps_wo
+  
+  M[i,41] <<- thorn_Cs_co/thorn_Ns_co
+  M[i,42] <<- thorn_Cs_co/thorn_Ps_co
+  M[i,43] <<- thorn_Ns_co/thorn_Ps_co
+  
+  M[i,44] <<- thorn_G_co
+  M[i,45] <<- thorn_G_no
+  M[i,46] <<- thorn_G_po
+  M[i,47] <<- thorn_G_wo
+
+  M[i,48] <<- Tc_co_to_no
+  M[i,49] <<- Tc_co_to_po
+  M[i,50] <<- Tc_co_to_wo
+  M[i,51] <<- Tc_no_to_po
+  M[i,52] <<- Tc_no_to_wo
+  M[i,53] <<- Tc_po_to_wo
+  
+  M[i,54] <<- Tn_co_to_no
+  M[i,55] <<- Tn_co_to_po
+  M[i,56] <<- Tn_co_to_wo
+  M[i,57] <<- Tn_no_to_po
+  M[i,58] <<- Tn_no_to_wo
+  M[i,59] <<- Tn_po_to_wo
+  
+  M[i,60] <<- Tp_co_to_no
+  M[i,61] <<- Tp_co_to_po
+  M[i,62] <<- Tp_co_to_wo
+  M[i,63] <<- Tp_no_to_po
+  M[i,64] <<- Tp_no_to_wo
+  M[i,65] <<- Tp_po_to_wo
+  
+  M[i,66] <<- Tw_co_to_no
+  M[i,67] <<- Tw_co_to_po
+  M[i,68] <<- Tw_co_to_wo
+  M[i,69] <<- Tw_no_to_po
+  M[i,70] <<- Tw_no_to_wo
+  M[i,71] <<- Tw_po_to_wo
+  
   
   }
 }
@@ -457,19 +514,49 @@ colnames(M)<-c(
   ,"Ws_co"
   ,"Ns_co"
   ,"Ps_co"
+  ,"Cs_no"
+  ,"Ws_no"
+  ,"Ns_no"
+  ,"Ps_no"
+  ,"Cs_po"
+  ,"Ws_po"
+  ,"Ns_po"
+  ,"Ps_po"
+  ,"Cs_wo"
+  ,"Ws_wo"
+  ,"Ns_wo"
+  ,"Ps_wo"
   ,"C:N_co"
   ,"C:p_co"
   ,"N:P_co"
+  ,"thorn_G_co"
+  ,"thorn_G_no"
+  ,"thorn_G_po"
+  ,"thorn_G_wo"
   ,"Tc_co_to_no"
   ,"Tc_co_to_po"
   ,"Tc_co_to_wo"
   ,"Tc_no_to_po"
   ,"Tc_no_to_wo"
   ,"Tc_po_to_wo"
-  ,"thorn_G_co"
-  ,"thorn_G_no"
-  ,"thorn_G_po"
-  ,"thorn_G_wo")
+  ,"Tn_co_to_no"
+  ,"Tn_co_to_po"
+  ,"Tn_co_to_wo"
+  ,"Tn_no_to_po"
+  ,"Tn_no_to_wo"
+  ,"Tn_po_to_wo"
+  ,"Tp_co_to_no"
+  ,"Tp_co_to_po"
+  ,"Tp_co_to_wo"
+  ,"Tp_no_to_po"
+  ,"Tp_no_to_wo"
+  ,"Tp_po_to_wo"
+  ,"Tw_co_to_no"
+  ,"Tw_co_to_po"
+  ,"Tw_co_to_wo"
+  ,"Tw_no_to_po"
+  ,"Tw_no_to_wo"
+  ,"Tw_po_to_wo")
 
 
 
@@ -477,7 +564,7 @@ wrapper_fn_mod(0)
 M <<- M
 
 graphics.off()
-pdf( file="TAM_removing_CO_source_sink.pdf", height=6, width=8 )
+pdf( file="TAM_removing_CO_source_sink_high_N_uptake.pdf", height=6, width=8 )
 par( mar=c(4,4,1,1) )
 #dev.new(width=15,height=7)
 par(mfcol=c(2,2))
@@ -488,21 +575,41 @@ legend("topleft",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M)[c(1:4)],ce
 matplot(M[,5:8],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
 legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M)[5:8],cex=1.0)
 
-matplot((M[,32:34]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F)
+matplot((M[,48:50]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F)
 abline(h=0, lty=2, lwd=0.5)
-legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M)[c(32:34)],cex=1.0)
+legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M)[c(48:50)],cex=1.0)
 
 # matplot((M[,38:41]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F)
 # legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M)[c(38:41)],cex=1.0)
 
-matplot(M[,38]/(M[,38]+M[,39]+M[,40]+M[,41]),type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(0,1))
-matplot(M[,41]/(M[,38]+M[,39]+M[,40]+M[,41]),type="l",lty=c(rep(1)),col=mycol[2],lwd=2,add=T, ylim=c(0,1))
-matplot(M[,40]/(M[,38]+M[,39]+M[,40]+M[,41]),type="l",lty=c(rep(1)),col=mycol[3],lwd=2,add=T, ylim=c(0,1))
-matplot(M[,41]/(M[,38]+M[,39]+M[,40]+M[,41]),type="l",lty=c(rep(1)),col=mycol[4],lwd=2,add=T, ylim=c(0,1))
+matplot(M[,44]/(M[,44]+M[,45]+M[,46]+M[,47]),type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(0,1))
+matplot(M[,47]/(M[,44]+M[,45]+M[,46]+M[,47]),type="l",lty=c(rep(1)),col=mycol[2],lwd=2,add=T, ylim=c(0,1))
+matplot(M[,45]/(M[,44]+M[,45]+M[,46]+M[,47]),type="l",lty=c(rep(1)),col=mycol[3],lwd=2,add=T, ylim=c(0,1))
+matplot(M[,46]/(M[,44]+M[,45]+M[,46]+M[,47]),type="l",lty=c(rep(1)),col=mycol[4],lwd=2,add=T, ylim=c(0,1))
 legend("topright",col=mycol[1:4],lty=c(rep(1)),legend=c("Alloc CO","Alloc WO","Alloc NO","Alloc PO"),cex=1.0)
 
 graphics.off()
 
+
+graphics.off()
+pdf( file="TAM_removing_CO_source_sink_substrate_concentrations_high_N.pdf", height=6, width=8 )
+par( mar=c(4,4,1,1) )
+#dev.new(width=15,height=7)
+par(mfcol=c(2,2))
+
+matplot(M[,c(25, 29, 33, 37)],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
+legend("topleft",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M)[c(25, 29, 33, 37)],cex=1.0)
+
+matplot(M[,c(26, 30, 34, 38)],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
+legend("topleft",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M)[c(26, 30, 34, 38)],cex=1.0)
+
+matplot((M[,c(27, 31, 35, 39)]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
+legend("topleft",col=mycol,lty=c(rep(1,4)),legend=colnames(M)[c(27, 31, 35, 39)],cex=1.0)
+
+matplot((M[,c(28, 32, 36, 40)]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
+legend("topleft",col=mycol,lty=c(rep(1,4)),legend=colnames(M)[c(28, 32, 36, 40)],cex=1.0)
+
+graphics.off()
 
 graphics.off()
 pdf( file="TAM_removing_CO_source_sink_compare_allocation.pdf", height=6, width=8 )
@@ -510,40 +617,67 @@ par( mar=c(4,4,1,1) )
 #dev.new(width=15,height=7)
 par(mfcol=c(1,2))
 
-matplot(M[,38]/(M[,38]+M[,39]+M[,40]+M[,41]),type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(0,1), main="High Nitrogen uptake")
-matplot(M[,41]/(M[,38]+M[,39]+M[,40]+M[,41]),type="l",lty=c(rep(2)),col=mycol[2],lwd=2,add=T, ylim=c(0,1))
-matplot(M[,39]/(M[,38]+M[,39]+M[,40]+M[,41]),type="l",lty=c(rep(3)),col=mycol[3],lwd=2,add=T, ylim=c(0,1))
-matplot(M[,40]/(M[,38]+M[,39]+M[,40]+M[,41]),type="l",lty=c(rep(4)),col=mycol[4],lwd=2,add=T, ylim=c(0,1))
+matplot(M[,44]/(M[,44]+M[,45]+M[,46]+M[,47]),type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(0,1), main="High Nitrogen uptake")
+matplot(M[,47]/(M[,44]+M[,45]+M[,46]+M[,47]),type="l",lty=c(rep(2)),col=mycol[2],lwd=2,add=T, ylim=c(0,1))
+matplot(M[,45]/(M[,44]+M[,45]+M[,46]+M[,47]),type="l",lty=c(rep(3)),col=mycol[3],lwd=2,add=T, ylim=c(0,1))
+matplot(M[,46]/(M[,44]+M[,45]+M[,46]+M[,47]),type="l",lty=c(rep(4)),col=mycol[4],lwd=2,add=T, ylim=c(0,1))
 legend("topright",col=mycol[1:4],lty=c(1,2,3,4),legend=c("Alloc CO","Alloc WO","Alloc NO","Alloc PO"),cex=1.0)
 
 wrapper_fn_mod(1) 
 M1 <<- M
-
-matplot(M1[,38]/(M1[,38]+M1[,39]+M1[,40]+M1[,41]),type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(0,1), main="Low Nitrogen uptake")
-matplot(M1[,41]/(M1[,38]+M1[,39]+M1[,40]+M1[,41]),type="l",lty=c(rep(2)),col=mycol[2],lwd=2,add=T, ylim=c(0,1))
-matplot(M1[,39]/(M1[,38]+M1[,39]+M1[,40]+M1[,41]),type="l",lty=c(rep(3)),col=mycol[3],lwd=2,add=T, ylim=c(0,1))
-matplot(M1[,40]/(M1[,38]+M1[,39]+M1[,40]+M1[,41]),type="l",lty=c(rep(4)),col=mycol[4],lwd=2,add=T, ylim=c(0,1))
+colnames(M1) <- colnames(M)
+matplot(M1[,44]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(0,1), main="Low Nitrogen uptake")
+matplot(M1[,47]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(2)),col=mycol[2],lwd=2,add=T, ylim=c(0,1))
+matplot(M1[,45]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(3)),col=mycol[3],lwd=2,add=T, ylim=c(0,1))
+matplot(M1[,46]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(4)),col=mycol[4],lwd=2,add=T, ylim=c(0,1))
 legend("topright",col=mycol[1:4],lty=c(1,2,3,4),legend=c("Alloc CO","Alloc WO","Alloc NO","Alloc PO"),cex=1.0)
 
 graphics.off()
 
 graphics.off()
-pdf( file="TAM_removing_CO_source_sink_substrate_concentrations.pdf", height=6, width=8 )
+pdf( file="TAM_removing_CO_source_sink_low_N_uptake.pdf", height=6, width=8 )
 par( mar=c(4,4,1,1) )
 #dev.new(width=15,height=7)
 par(mfcol=c(2,2))
 
-matplot(M[,c(9, 13, 17, 21)],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
-legend("topleft",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M)[c(9, 13, 17, 21)],cex=1.0)
+matplot(log(M1[,1:4]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2)
+legend("topleft",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M1)[c(1:4)],cex=1.0)
 
-matplot(M[,c(10, 14, 18, 22)],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
-legend("topleft",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M)[c(10, 14, 18, 22)],cex=1.0)
+matplot(M1[,5:8],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M1)[5:8],cex=1.0)
 
-matplot((M[,c(11, 15, 19, 23)]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
-legend("topleft",col=mycol,lty=c(rep(1,4)),legend=colnames(M)[c(11, 15, 19, 23)],cex=1.0)
+matplot((M1[,48:50]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F)
+abline(h=0, lty=2, lwd=0.5)
+legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M1)[c(48:50)],cex=1.0)
 
-matplot((M[,c(12, 16, 20, 24)]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
-legend("topleft",col=mycol,lty=c(rep(1,4)),legend=colnames(M)[c(12, 16, 20, 24)],cex=1.0)
+# matplot((M1[,38:41]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F)
+# legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M1)[c(38:41)],cex=1.0)
+
+matplot(M1[,44]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(0,1))
+matplot(M1[,47]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(1)),col=mycol[2],lwd=2,add=T, ylim=c(0,1))
+matplot(M1[,45]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(1)),col=mycol[3],lwd=2,add=T, ylim=c(0,1))
+matplot(M1[,46]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(1)),col=mycol[4],lwd=2,add=T, ylim=c(0,1))
+legend("topright",col=mycol[1:4],lty=c(rep(1)),legend=c("Alloc CO","Alloc WO","Alloc NO","Alloc PO"),cex=1.0)
+
+graphics.off()
+
+graphics.off()
+pdf( file="TAM_removing_CO_source_sink_substrate_concentrations_low_N.pdf", height=6, width=8 )
+par( mar=c(4,4,1,1) )
+#dev.new(width=15,height=7)
+par(mfcol=c(2,2))
+
+matplot(M1[,c(25, 29, 33, 37)],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
+legend("topleft",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M1)[c(25, 29, 33, 37)],cex=1.0)
+
+matplot(M1[,c(26, 30, 34, 38)],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
+legend("topleft",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M1)[c(26, 30, 34, 38)],cex=1.0)
+
+matplot((M1[,c(27, 31, 35, 39)]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
+legend("topleft",col=mycol,lty=c(rep(1,4)),legend=colnames(M1)[c(27, 31, 35, 39)],cex=1.0)
+
+matplot((M1[,c(28, 32, 36, 40)]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
+legend("topleft",col=mycol,lty=c(rep(1,4)),legend=colnames(M1)[c(28, 32, 36, 40)],cex=1.0)
 
 graphics.off()
 
