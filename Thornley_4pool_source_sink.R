@@ -24,28 +24,28 @@ thorn_Mxpo_t0 = 0.25/size.factor; #Thornley uses has 0.5
 thorn_Mxwo_t0 = 0.25/size.factor; #Thornley uses has 0.5
 
 ## intitial values for mass of substrates C,N,P for carbon organ
-thorn_Mcs_co_t0 = 0.025/size.factor;
-thorn_Mns_co_t0 = 0.01/size.factor;
-thorn_Mps_co_t0 = 0.005/size.factor;
-thorn_Mws_co_t0 = 0.25/size.factor;
+thorn_Mcs_co_t0 = 0.025/size.factor*0.25;
+thorn_Mns_co_t0 = 0.01/size.factor*0.25;
+thorn_Mps_co_t0 = 0.005/size.factor*0.25;
+thorn_Mws_co_t0 = 0.25/size.factor*0.25;
 
 ## intitial values for mass of substrates C,N,P for nitrogen organ
-thorn_Mcs_no_t0 = 0.025/size.factor;
-thorn_Mns_no_t0 = 0.01/size.factor;
-thorn_Mps_no_t0 = 0.005/size.factor;
-thorn_Mws_no_t0 = 0.25/size.factor;
+thorn_Mcs_no_t0 = 0.025/size.factor*0.25;
+thorn_Mns_no_t0 = 0.01/size.factor*0.25;
+thorn_Mps_no_t0 = 0.005/size.factor*0.25;
+thorn_Mws_no_t0 = 0.25/size.factor*0.25;
 
 ## intitial values for mass of substrates C,N,P for phosphorus organ
-thorn_Mcs_po_t0 = 0.025/size.factor;
-thorn_Mns_po_t0 = 0.01/size.factor;
-thorn_Mps_po_t0 = 0.005/size.factor;
-thorn_Mws_po_t0 = 0.25/size.factor;
+thorn_Mcs_po_t0 = 0.025/size.factor*0.25;
+thorn_Mns_po_t0 = 0.01/size.factor*0.25;
+thorn_Mps_po_t0 = 0.005/size.factor*0.25;
+thorn_Mws_po_t0 = 0.25/size.factor*0.25;
 
 ## intitial values for mass of substrates C,N,P for water organ
-thorn_Mcs_wo_t0 = 0.025/size.factor;
-thorn_Mns_wo_t0 = 0.01/size.factor;
-thorn_Mps_wo_t0 = 0.005/size.factor;
-thorn_Mws_wo_t0 = 0.25/size.factor;
+thorn_Mcs_wo_t0 = 0.025/size.factor*0.25;
+thorn_Mns_wo_t0 = 0.01/size.factor*0.25;
+thorn_Mps_wo_t0 = 0.005/size.factor*0.25;
+thorn_Mws_wo_t0 = 0.25/size.factor*0.25;
 
 ## upktake rates of C,N,P
 
@@ -156,7 +156,7 @@ thorn_Fxpo = thorn_Mxpo_t0/thorn_Mx_t0;
 
 #R only make a matrix to store the variables for plotting
 #n.steps<-360*10
-n.steps<-110
+n.steps<-200
 M<-matrix(0,nrow=n.steps,ncol=71)
 
 wrapper_fn_mod <- function(uptake)
@@ -169,14 +169,16 @@ wrapper_fn_mod <- function(uptake)
   base =  0.0002*100; #aDGVM produces numbers around 0.00001 to 0.001 for C_net/plant_mass
   thorn_Kc  = base*1.0;
   thorn_Kw  = 0.015;
+  
   if(uptake_change == 1)
   {
-    thorn_Kn  = 0.0001;
+    thorn_Kn  = 0.025; # low N uptake rate
     # thorn_Kn  = 0.05 - pmin(0.001,(i*0.1));
     print("Low N")
     print(thorn_Kn)
   }
-  if(uptake_change == 0)
+  
+  if(uptake_change == 0) # high N uptake rate
   {
     thorn_Kn  = 0.25;
     print("High N")
@@ -418,6 +420,12 @@ wrapper_fn_mod <- function(uptake)
   	thorn_Mns_co = thorn_Mns_co*0.0;
     thorn_Mps_co = thorn_Mps_co*0.0;
   	thorn_Mws_co = thorn_Mws_co*0.0;
+  	
+  	thorn_Cs_co = thorn_Mcs_co/thorn_Mxco; #2
+  	thorn_Ns_co = thorn_Mns_co/thorn_Mxco; #2
+  	thorn_Ps_co = thorn_Mps_co/thorn_Mxco; #2
+  	thorn_Ws_co = thorn_Mws_co/thorn_Mxco; #2
+  	
   }
   
   # Transport resistance of each compartment 
@@ -431,41 +439,41 @@ wrapper_fn_mod <- function(uptake)
   # NOTE: this is not complete - I need to include transport between other compartments i.e. Po to Wo, Po to No, Wo to No for C,N,P & W.
   
   # carbon transport
-  Tc_co_to_no = 0.2*(thorn_Cs_co - thorn_Cs_no) / (res_co + res_no) # transport of carbon substrate from the carbon organ to the nitrogen organ
-  Tc_co_to_po = 0.2*(thorn_Cs_co - thorn_Cs_po) / (res_co + res_po) # transport of carbon substrate from the carbon organ to the phosphorus organ
-  Tc_co_to_wo = 0.2*(thorn_Cs_co - thorn_Cs_wo) / (res_co + res_wo) # transport of carbon substrate from the carbon organ to the water organ
+  Tc_co_to_no = 0.5*(thorn_Cs_co - thorn_Cs_no) / (res_co + res_no) # transport of carbon substrate from the carbon organ to the nitrogen organ
+  Tc_co_to_po = 0.5*(thorn_Cs_co - thorn_Cs_po) / (res_co + res_po) # transport of carbon substrate from the carbon organ to the phosphorus organ
+  Tc_co_to_wo = 0.5*(thorn_Cs_co - thorn_Cs_wo) / (res_co + res_wo) # transport of carbon substrate from the carbon organ to the water organ
   
-  Tc_no_to_po = 0.2*(thorn_Cs_no - thorn_Cs_po) / (res_no + res_po) # transport of carbon substrate from the nitrogen organ to the phosphorus organ
-  Tc_no_to_wo = 0.2*(thorn_Cs_no - thorn_Cs_wo) / (res_no + res_wo) # transport of carbon substrate from the nitrogen organ to the water organ
-  Tc_po_to_wo = 0.2*(thorn_Cs_po - thorn_Cs_wo) / (res_po + res_wo) # transport of carbon substrate from the phosphorus organ to the water organ
+  Tc_no_to_po = 0.5*(thorn_Cs_no - thorn_Cs_po) / (res_no + res_po) # transport of carbon substrate from the nitrogen organ to the phosphorus organ
+  Tc_no_to_wo = 0.5*(thorn_Cs_no - thorn_Cs_wo) / (res_no + res_wo) # transport of carbon substrate from the nitrogen organ to the water organ
+  Tc_po_to_wo = 0.5*(thorn_Cs_po - thorn_Cs_wo) / (res_po + res_wo) # transport of carbon substrate from the phosphorus organ to the water organ
   
   # print(c("Tc_cn Tc_cp Tc_cw Tc_np Tc_nw Tc_pw"))
   # print(round(c(Tc_co_to_no, Tc_co_to_po, Tc_co_to_wo, Tc_no_to_po, Tc_no_to_wo, Tc_po_to_wo),2))
   
   # nitrogen transport
-  Tn_co_to_no = 0.2*(thorn_Ns_co - thorn_Ns_no) / (res_co + res_no) # transport of nitrogen substrate from the carbon organ to the nitrogen organ
-  Tn_co_to_po = 0.2*(thorn_Ns_co - thorn_Ns_po) / (res_co + res_po) # transport of nitrogen substrate from the carbon organ to the phosphorus organ
-  Tn_co_to_wo = 0.2*(thorn_Ns_co - thorn_Ns_wo) / (res_co + res_wo) # transport of nitrogen substrate from the carbon organ to the water organ
+  Tn_co_to_no = 0.5*(thorn_Ns_co - thorn_Ns_no) / (res_co + res_no) # transport of nitrogen substrate from the carbon organ to the nitrogen organ
+  Tn_co_to_po = 0.5*(thorn_Ns_co - thorn_Ns_po) / (res_co + res_po) # transport of nitrogen substrate from the carbon organ to the phosphorus organ
+  Tn_co_to_wo = 0.5*(thorn_Ns_co - thorn_Ns_wo) / (res_co + res_wo) # transport of nitrogen substrate from the carbon organ to the water organ
   
-  Tn_no_to_po = 0.2*(thorn_Ns_no - thorn_Ns_po) / (res_no + res_po) # transport of nitrogen substrate from the nitrogen organ to the phosphorus organ
-  Tn_no_to_wo = 0.2*(thorn_Ns_no - thorn_Ns_wo) / (res_no + res_wo) # transport of nitrogen substrate from the nitrogen organ to the water organ
-  Tn_po_to_wo = 0.2*(thorn_Ns_po - thorn_Ns_wo) / (res_po + res_wo) # transport of nitrogen substrate from the phosphorus organ to the water organ
+  Tn_no_to_po = 0.5*(thorn_Ns_no - thorn_Ns_po) / (res_no + res_po) # transport of nitrogen substrate from the nitrogen organ to the phosphorus organ
+  Tn_no_to_wo = 0.5*(thorn_Ns_no - thorn_Ns_wo) / (res_no + res_wo) # transport of nitrogen substrate from the nitrogen organ to the water organ
+  Tn_po_to_wo = 0.5*(thorn_Ns_po - thorn_Ns_wo) / (res_po + res_wo) # transport of nitrogen substrate from the phosphorus organ to the water organ
   # phosphorus transport
-  Tp_co_to_no = 0.2*(thorn_Ps_co - thorn_Ps_no) / (res_co + res_no) # transport of phosphorus substrate from the carbon organ to the nitrogen organ
-  Tp_co_to_po = 0.2*(thorn_Ps_co - thorn_Ps_po) / (res_co + res_po) # transport of phosphorus substrate from the carbon organ to the phosphorus organ
-  Tp_co_to_wo = 0.2*(thorn_Ps_co - thorn_Ps_wo) / (res_co + res_wo) # transport of phosphorus substrate from the carbon organ to the water organ
+  Tp_co_to_no = 0.5*(thorn_Ps_co - thorn_Ps_no) / (res_co + res_no) # transport of phosphorus substrate from the carbon organ to the nitrogen organ
+  Tp_co_to_po = 0.5*(thorn_Ps_co - thorn_Ps_po) / (res_co + res_po) # transport of phosphorus substrate from the carbon organ to the phosphorus organ
+  Tp_co_to_wo = 0.5*(thorn_Ps_co - thorn_Ps_wo) / (res_co + res_wo) # transport of phosphorus substrate from the carbon organ to the water organ
   
-  Tp_no_to_po = 0.2*(thorn_Ps_no - thorn_Ps_po) / (res_no + res_po) # transport of phosphorus substrate from the nitrogen organ to the phosphorus organ
-  Tp_no_to_wo = 0.2*(thorn_Ps_no - thorn_Ps_wo) / (res_no + res_wo) # transport of phosphorus substrate from the nitrogen organ to the water organ
-  Tp_po_to_wo = 0.2*(thorn_Ps_po - thorn_Ps_wo) / (res_po + res_wo) # transport of phosphorus substrate from the phosphorus organ to the water organ
+  Tp_no_to_po = 0.5*(thorn_Ps_no - thorn_Ps_po) / (res_no + res_po) # transport of phosphorus substrate from the nitrogen organ to the phosphorus organ
+  Tp_no_to_wo = 0.5*(thorn_Ps_no - thorn_Ps_wo) / (res_no + res_wo) # transport of phosphorus substrate from the nitrogen organ to the water organ
+  Tp_po_to_wo = 0.5*(thorn_Ps_po - thorn_Ps_wo) / (res_po + res_wo) # transport of phosphorus substrate from the phosphorus organ to the water organ
   # water transport
-  Tw_co_to_no = 0.2*(thorn_Ws_co - thorn_Ws_no) / (res_co + res_no) # transport of water substrate from the carbon organ to the nitrogen organ
-  Tw_co_to_po = 0.2*(thorn_Ws_co - thorn_Ws_po) / (res_co + res_po) # transport of water substrate from the carbon organ to the phosphorus organ
-  Tw_co_to_wo = 0.2*(thorn_Ws_co - thorn_Ws_wo) / (res_co + res_wo) # transport of water substrate from the carbon organ to the water organ
+  Tw_co_to_no = 0.5*(thorn_Ws_co - thorn_Ws_no) / (res_co + res_no) # transport of water substrate from the carbon organ to the nitrogen organ
+  Tw_co_to_po = 0.5*(thorn_Ws_co - thorn_Ws_po) / (res_co + res_po) # transport of water substrate from the carbon organ to the phosphorus organ
+  Tw_co_to_wo = 0.5*(thorn_Ws_co - thorn_Ws_wo) / (res_co + res_wo) # transport of water substrate from the carbon organ to the water organ
   
-  Tw_no_to_po = 0.2*(thorn_Ws_no - thorn_Ws_po) / (res_no + res_po) # transport of water substrate from the carbon organ to the nitrogen organ
-  Tw_no_to_wo = 0.2*(thorn_Ws_no - thorn_Ws_wo) / (res_no + res_wo) # transport of water substrate from the carbon organ to the phosphorus organ
-  Tw_po_to_wo = 0.2*(thorn_Ws_po - thorn_Ws_wo) / (res_po + res_wo) # transport of water substrate from the carbon organ to the water organ
+  Tw_no_to_po = 0.5*(thorn_Ws_no - thorn_Ws_po) / (res_no + res_po) # transport of water substrate from the carbon organ to the nitrogen organ
+  Tw_no_to_wo = 0.5*(thorn_Ws_no - thorn_Ws_wo) / (res_no + res_wo) # transport of water substrate from the carbon organ to the phosphorus organ
+  Tw_po_to_wo = 0.5*(thorn_Ws_po - thorn_Ws_wo) / (res_po + res_wo) # transport of water substrate from the carbon organ to the water organ
   
   thorn_Mcs_co = max(0.0001, thorn_Mcs_co - Tc_co_to_no - Tc_co_to_po - Tc_co_to_wo);
   thorn_Mns_co = max(0.0001, thorn_Mns_co - Tn_co_to_no - Tn_co_to_po - Tn_co_to_wo);
@@ -686,10 +694,10 @@ par( mar=c(4,4,1,1) )
 #dev.new(width=15,height=7)
 par(mfcol=c(2,3))
 
-matplot(log(M[,1:4]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2, ylab="log(Structural mass)")
+matplot((M[,1:4]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2, ylab="(Structural mass)")
 legend("topleft",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M)[c(1:4)],cex=1.0)
 
-matplot(M[,5:8],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, ylab="Proportion of structural mass in plant compartments)")
+matplot(M[,5:8],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, ylim=c(0,1), ylab="Proportion of structural mass in plant compartments)")
 legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M)[5:8],cex=1.0)
 
 matplot((M[,48:50]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F, ylab="Carbon organ transfer of substrate")
@@ -714,10 +722,10 @@ matplot(M[,45]/(M[,44]+M[,45]+M[,46]+M[,47]),type="l",lty=c(rep(1)),col=mycol[3]
 matplot(M[,46]/(M[,44]+M[,45]+M[,46]+M[,47]),type="l",lty=c(rep(1)),col=mycol[4],lwd=2,add=T, ylim=c(0,1))
 legend("topright",col=mycol[1:4],lty=c(rep(1)),legend=c("Alloc CO","Alloc WO","Alloc NO","Alloc PO"),cex=1.0)
 
-matplot(((gg_co1-gg_co2)/gg_co2)*100,type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(-5,5), ylab="Percentage growth rates of plant compartments")
-matplot(((gg_wo1-gg_wo2)/gg_wo2)*100,type="l",lty=c(rep(1)),col=mycol[2],lwd=2,add=T, ylim=c(-5,5))
-matplot(((gg_no1-gg_no2)/gg_no2)*100,type="l",lty=c(rep(1)),col=mycol[3],lwd=2,add=T, ylim=c(-5,5))
-matplot(((gg_po1-gg_po2)/gg_po2)*100,type="l",lty=c(rep(1)),col=mycol[4],lwd=2,add=T, ylim=c(-5,5))
+matplot(((gg_co1-gg_co2)/gg_co2)*100,type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(-8,8), ylab="Percentage growth rates of plant compartments")
+matplot(((gg_wo1-gg_wo2)/gg_wo2)*100,type="l",lty=c(rep(1)),col=mycol[2],lwd=2,add=T, ylim=c(-8,8))
+matplot(((gg_no1-gg_no2)/gg_no2)*100,type="l",lty=c(rep(1)),col=mycol[3],lwd=2,add=T, ylim=c(-8,8))
+matplot(((gg_po1-gg_po2)/gg_po2)*100,type="l",lty=c(rep(1)),col=mycol[4],lwd=2,add=T, ylim=c(-8,8))
 legend("topright",col=mycol[1:4],lty=c(rep(1)),legend=c("Growth CO","Growth WO","Growth NO","Growth PO"),cex=1.0)
 
 graphics.off()
@@ -749,13 +757,7 @@ par( mar=c(4,4,1,1) )
 #dev.new(width=15,height=7)
 par(mfcol=c(1,2))
 
-matplot(M[,44]/(M[,44]+M[,45]+M[,46]+M[,47]),type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(0,1), main="High Nitrogen uptake")
-matplot(M[,47]/(M[,44]+M[,45]+M[,46]+M[,47]),type="l",lty=c(rep(2)),col=mycol[2],lwd=2,add=T, ylim=c(0,1))
-matplot(M[,45]/(M[,44]+M[,45]+M[,46]+M[,47]),type="l",lty=c(rep(3)),col=mycol[3],lwd=2,add=T, ylim=c(0,1))
-matplot(M[,46]/(M[,44]+M[,45]+M[,46]+M[,47]),type="l",lty=c(rep(4)),col=mycol[4],lwd=2,add=T, ylim=c(0,1))
-legend("topright",col=mycol[1:4],lty=c(1,2,3,4),legend=c("Alloc CO","Alloc WO","Alloc NO","Alloc PO"),cex=1.0)
-
-matplot(M[,44]/(M[,44]+M[,45]+M[,46]+M[,47]),type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(0,1), main="High Nitrogen uptake")
+matplot(M[,44]/(M[,44]+M[,45]+M[,46]+M[,47]),type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(0,1), main="High Nitrogen uptake", ylab="Emergent allocation")
 matplot(M[,47]/(M[,44]+M[,45]+M[,46]+M[,47]),type="l",lty=c(rep(2)),col=mycol[2],lwd=2,add=T, ylim=c(0,1))
 matplot(M[,45]/(M[,44]+M[,45]+M[,46]+M[,47]),type="l",lty=c(rep(3)),col=mycol[3],lwd=2,add=T, ylim=c(0,1))
 matplot(M[,46]/(M[,44]+M[,45]+M[,46]+M[,47]),type="l",lty=c(rep(4)),col=mycol[4],lwd=2,add=T, ylim=c(0,1))
@@ -764,7 +766,7 @@ legend("topright",col=mycol[1:4],lty=c(1,2,3,4),legend=c("Alloc CO","Alloc WO","
 wrapper_fn_mod(1) 
 M1 <<- M
 colnames(M1) <- colnames(M)
-matplot(M1[,44]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(0,1), main="Low Nitrogen uptake")
+matplot(M1[,44]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(0,1), main="Low Nitrogen uptake", ylab="Emergent allocation")
 matplot(M1[,47]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(2)),col=mycol[2],lwd=2,add=T, ylim=c(0,1))
 matplot(M1[,45]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(3)),col=mycol[3],lwd=2,add=T, ylim=c(0,1))
 matplot(M1[,46]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(4)),col=mycol[4],lwd=2,add=T, ylim=c(0,1))
@@ -776,26 +778,41 @@ graphics.off()
 pdf( file="TAM_removing_CO_source_sink_low_N_uptake.pdf", height=6, width=8 )
 par( mar=c(4,4,1,1) )
 #dev.new(width=15,height=7)
-par(mfcol=c(2,2))
+par(mfcol=c(2,3))
 
-matplot(log(M1[,1:4]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2)
+matplot((M1[,1:4]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2, ylab="(Structural mass)")
 legend("topleft",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M1)[c(1:4)],cex=1.0)
 
-matplot(M1[,5:8],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F)
+matplot(M1[,5:8],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, ylim=c(0,1), ylab="Proportion of structural mass in plant compartments)")
 legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M1)[5:8],cex=1.0)
 
-matplot((M1[,48:50]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F)
+matplot((M1[,48:50]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F, ylab="Carbon organ transfer of substrate")
 abline(h=0, lty=2, lwd=0.5)
 legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M1)[c(48:50)],cex=1.0)
 
 # matplot((M1[,38:41]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F)
 # legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M1)[c(38:41)],cex=1.0)
+gg_co1 <- M1[-1,1]
+gg_co2 <- M1[-dim(M1)[1],1]
+gg_wo1 <- M1[-1,2]
+gg_wo2 <- M1[-dim(M1)[1],2]
+gg_no1 <- M1[-1,3]
+gg_no2 <- M1[-dim(M1)[1],3]
+gg_po1 <- M1[-1,4]
+gg_po2 <- M1[-dim(M1)[1],4]
 
-matplot(M1[,44]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(0,1))
+
+matplot(M1[,44]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(0,1), ylab="Emergent allocation")
 matplot(M1[,47]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(1)),col=mycol[2],lwd=2,add=T, ylim=c(0,1))
 matplot(M1[,45]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(1)),col=mycol[3],lwd=2,add=T, ylim=c(0,1))
 matplot(M1[,46]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(1)),col=mycol[4],lwd=2,add=T, ylim=c(0,1))
 legend("topright",col=mycol[1:4],lty=c(rep(1)),legend=c("Alloc CO","Alloc WO","Alloc NO","Alloc PO"),cex=1.0)
+
+matplot(((gg_co1-gg_co2)/gg_co2)*100,type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(-8,8), ylab="Percentage growth rates of plant compartments")
+matplot(((gg_wo1-gg_wo2)/gg_wo2)*100,type="l",lty=c(rep(1)),col=mycol[2],lwd=2,add=T, ylim=c(-8,8))
+matplot(((gg_no1-gg_no2)/gg_no2)*100,type="l",lty=c(rep(1)),col=mycol[3],lwd=2,add=T, ylim=c(-8,8))
+matplot(((gg_po1-gg_po2)/gg_po2)*100,type="l",lty=c(rep(1)),col=mycol[4],lwd=2,add=T, ylim=c(-8,8))
+legend("topright",col=mycol[1:4],lty=c(rep(1)),legend=c("Growth CO","Growth WO","Growth NO","Growth PO"),cex=1.0)
 
 graphics.off()
 
