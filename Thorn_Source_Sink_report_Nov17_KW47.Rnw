@@ -165,7 +165,7 @@ thorn_Ps_wo = thorn_Mps_wo_t0/thorn_Mxwo;
 thorn_Ws_wo = thorn_Mws_wo_t0/thorn_Mxwo;
 
 ## AUX VARIABLE initial values for fractions of structural dry matter in 
-## the carbon organ, nitrogen organ, phosphorus organ and water organ
+# the carbon organ, nitrogen organ, phosphorus organ and water organ
 # these are now redundant but useful to examine how mass is aportioned.
 thorn_Fxco = thorn_Mxco_t0/thorn_Mx_t0;
 thorn_Fxwo = thorn_Mxwo_t0/thorn_Mx_t0;
@@ -184,7 +184,8 @@ M<-matrix(0,nrow=n.steps,ncol=71)
 wrapper_fn_mod <- function(uptake)
 {
   ## the for loop
-  for(i in 1:n.steps) {
+  for(i in 1:n.steps) 
+    {
     
   uptake_change <- uptake
 
@@ -214,8 +215,8 @@ wrapper_fn_mod <- function(uptake)
   
   thorn_Mx = thorn_Mxco + thorn_Mxwo + thorn_Mxno + thorn_Mxpo ; #3
   
-#########################################################################################
-# Here I am assuming that a leaf of mass less than 0.1 grammes cannot do photosynthesis.
+######################################################################################
+# Here I am assuming a leaf of mass less than 0.1 grammes cannot do photosynthesis.
 # This is to test the difference between uni and bi directional transport, i.e. bi-
 # directional transport would allow such a leaf to "grow" unitl is bigger than
 # this artificial threshold I have set. 
@@ -237,41 +238,31 @@ wrapper_fn_mod <- function(uptake)
   # carbon added to carbon organ pool mass
   thorn_Mcs_co = max(0.000, thorn_Mcs_co + thorn_Uc);
   # nitrogen added to nitrogen organ pool mass
-  thorn_Mns_no = max(0.000, thorn_Mns_no + thorn_Un );
+  thorn_Mns_no = max(0.000, thorn_Mns_no + thorn_Un);
   # phosphorus added to phosphorus organ pool mass
-  thorn_Mps_po = max(0.000, thorn_Mps_po + thorn_Up );
+  thorn_Mps_po = max(0.000, thorn_Mps_po + thorn_Up);
   # water added to water organ pool mass
-  thorn_Mws_wo = max(0.000, thorn_Mws_wo + thorn_Uw );
+  thorn_Mws_wo = max(0.000, thorn_Mws_wo + thorn_Uw);
 
-  thorn_Cs_co = thorn_Mcs_co/thorn_Mxco; #2
-  thorn_Ns_co = thorn_Mns_co/thorn_Mxco; #2
-  thorn_Ps_co = thorn_Mps_co/thorn_Mxco; #2
-  thorn_Ws_co = thorn_Mws_co/thorn_Mxco; #2
-  
-  thorn_Cs_no = thorn_Mcs_no/thorn_Mxno; #2
-  thorn_Ns_no = thorn_Mns_no/thorn_Mxno; #2
-  thorn_Ps_no = thorn_Mps_no/thorn_Mxno; #2
-  thorn_Ws_no = thorn_Mws_no/thorn_Mxno; #2
-  
-  thorn_Cs_po = thorn_Mcs_po/thorn_Mxpo; #2
-  thorn_Ns_po = thorn_Mns_po/thorn_Mxpo; #2
-  thorn_Ps_po = thorn_Mps_po/thorn_Mxpo; #2
-  thorn_Ws_po = thorn_Mws_po/thorn_Mxpo; #2
-  
-  thorn_Cs_wo = thorn_Mcs_wo/thorn_Mxwo; #2
-  thorn_Ns_wo = thorn_Mns_wo/thorn_Mxwo; #2
-  thorn_Ps_wo = thorn_Mps_wo/thorn_Mxwo; #2
-  thorn_Ws_wo = thorn_Mws_wo/thorn_Mxwo; #2
-  
-  #  use this code to simulate a loss in shoots e.g in fire
+  # Update concentrations of substrates C,N,P,W for co, no, po and wo.  
+  thorn_Cs_co = thorn_Mcs_co/thorn_Mxco; # only for substrate specific to organ
+  thorn_Ns_no = thorn_Mns_no/thorn_Mxno; # only for substrate specific to organ
+  thorn_Ps_po = thorn_Mps_po/thorn_Mxpo; # only for substrate specific to organ
+  thorn_Ws_wo = thorn_Mws_wo/thorn_Mxwo; # only for substrate specific to organ
+
+  # use this code to simulate a loss of shoots e.g in fire
   # if(i == 100)
   # {
-  #   thorn_Mxco = 0.0001;
-  #   thorn_Mcs_co = thorn_Mcs_co*0.0;
+      ## 1 gram of co mass left - growth can only happen if structural mass > 0
+  #   thorn_Mxco = 0.0001; 
+  
+      ## mass of substrates in co set to zero
+  #   thorn_Mcs_co = thorn_Mcs_co*0.0; 
   #   thorn_Mns_co = thorn_Mns_co*0.0;
   #   thorn_Mps_co = thorn_Mps_co*0.0;
   #   thorn_Mws_co = thorn_Mws_co*0.0;
   #   
+      ## recalculate substrate concentrations for carbon organ
   #   thorn_Cs_co = thorn_Mcs_co/thorn_Mxco; #2
   #   thorn_Ns_co = thorn_Mns_co/thorn_Mxco; #2
   #   thorn_Ps_co = thorn_Mps_co/thorn_Mxco; #2
@@ -282,15 +273,16 @@ wrapper_fn_mod <- function(uptake)
   #   print("-----")
   #   
   # }
+#######################################################################################
   
-  
-  ## thorn_Kg is a calibration parameter. 
-  ## substrate cocentrations affect growth and are modified by uptake inhibition and trasnport
-  thorn_G_co = thorn_Kg*thorn_Mxco*thorn_Cs_co*thorn_Ns_co*thorn_Ps_co*thorn_Ws_co ; # see 13 and 12
-  thorn_G_no = thorn_Kg*thorn_Mxno*thorn_Cs_no*thorn_Ns_no*thorn_Ps_no*thorn_Ws_no ; # see 13 and 12
-  thorn_G_po = thorn_Kg*thorn_Mxpo*thorn_Cs_po*thorn_Ns_po*thorn_Ps_po*thorn_Ws_po ; # see 13 and 12
-  thorn_G_wo = thorn_Kg*thorn_Mxwo*thorn_Cs_wo*thorn_Ns_wo*thorn_Ps_wo*thorn_Ws_wo ; # see 13 and 12
+  ## thorn_Kg is a calibration parameter. Substrate cocentrations affect growth and are
+  ## modified by uptake inhibition and trasnport
+  thorn_G_co = thorn_Kg*thorn_Mxco*thorn_Cs_co*thorn_Ns_co*thorn_Ps_co*thorn_Ws_co ; 
+  thorn_G_no = thorn_Kg*thorn_Mxno*thorn_Cs_no*thorn_Ns_no*thorn_Ps_no*thorn_Ws_no ; 
+  thorn_G_po = thorn_Kg*thorn_Mxpo*thorn_Cs_po*thorn_Ns_po*thorn_Ps_po*thorn_Ws_po ; 
+  thorn_G_wo = thorn_Kg*thorn_Mxwo*thorn_Cs_wo*thorn_Ns_wo*thorn_Ps_wo*thorn_Ws_wo ; 
 
+  # print growth and carbon substrate concentration for carbon organ following fire
   if(i == 100 | i==101)
   {
     print(i)
@@ -305,26 +297,7 @@ wrapper_fn_mod <- function(uptake)
     print("-----")
   }
   
-  # thorn_Mcs_co = max(0.0001, thorn_Mcs_co - thorn_Fcx * thorn_G_co - Tc_co_to_no - Tc_co_to_po - Tc_co_to_wo);
-  # thorn_Mns_co = max(0.0001, thorn_Mns_co - thorn_Fnx * thorn_G_co - Tn_co_to_no - Tn_co_to_po - Tn_co_to_wo);
-  # thorn_Mps_co = max(0.0001, thorn_Mps_co - thorn_Fpx * thorn_G_co - Tp_co_to_no - Tp_co_to_po - Tp_co_to_wo);
-  # thorn_Mws_co = max(0.0001, thorn_Mws_co - thorn_Fwx * thorn_G_co - Tw_co_to_no - Tw_co_to_po - Tw_co_to_wo);
-  # 
-  # thorn_Mcs_no = max(0.0001, thorn_Mcs_no - thorn_Fcx * thorn_G_no - Tc_no_to_po - Tc_no_to_wo + Tc_co_to_no);
-  # thorn_Mns_no = max(0.0001, thorn_Mns_no - thorn_Fnx * thorn_G_no + Tn_co_to_no - Tn_no_to_po - Tn_no_to_wo);
-  # thorn_Mps_no = max(0.0001, thorn_Mps_no - thorn_Fpx * thorn_G_no - Tp_no_to_po - Tp_no_to_wo + Tp_co_to_no);
-  # thorn_Mws_no = max(0.0001, thorn_Mws_no - thorn_Fwx * thorn_G_no - Tw_no_to_po - Tw_no_to_wo + Tw_co_to_no);
-  # 
-  # thorn_Mcs_po = max(0.0001, thorn_Mcs_po - thorn_Fcx * thorn_G_po - Tc_po_to_wo + Tc_no_to_po + Tc_co_to_po);
-  # thorn_Mns_po = max(0.0001, thorn_Mns_po - thorn_Fnx * thorn_G_po - Tn_po_to_wo + Tn_no_to_po + Tn_co_to_po);
-  # thorn_Mps_po = max(0.0001, thorn_Mps_po - thorn_Fnx * thorn_G_po - Tn_po_to_wo + Tn_no_to_po + Tn_co_to_po);
-  # thorn_Mws_po = max(0.0001, thorn_Mws_po - thorn_Fwx * thorn_G_po - Tw_po_to_wo + Tw_no_to_po + Tw_co_to_po);
-  # 
-  # thorn_Mcs_wo = max(0.0001, thorn_Mcs_wo - thorn_Fcx * thorn_G_wo + Tc_co_to_wo + Tc_no_to_wo + Tc_po_to_wo);
-  # thorn_Mns_wo = max(0.0001, thorn_Mns_wo - thorn_Fnx * thorn_G_wo + Tn_co_to_wo + Tn_no_to_wo + Tn_po_to_wo);
-  # thorn_Mps_wo = max(0.0001, thorn_Mps_wo - thorn_Fpx * thorn_G_wo + Tp_co_to_wo + Tp_no_to_wo + Tp_po_to_wo);
-  # thorn_Mws_wo = max(0.0001, thorn_Mws_wo - thorn_Fwx * thorn_G_wo + Tw_co_to_wo + Tw_no_to_wo + Tw_po_to_wo);
-
+  # take growth away from substrate mass for each pool in each organ
   thorn_Mcs_co = max(0.000, thorn_Mcs_co - thorn_Fcx * thorn_G_co );
   thorn_Mns_co = max(0.000, thorn_Mns_co - thorn_Fnx * thorn_G_co );
   thorn_Mps_co = max(0.000, thorn_Mps_co - thorn_Fpx * thorn_G_co );
@@ -344,33 +317,20 @@ wrapper_fn_mod <- function(uptake)
   thorn_Mns_wo = max(0.000, thorn_Mns_wo - thorn_Fnx * thorn_G_wo );
   thorn_Mps_wo = max(0.000, thorn_Mps_wo - thorn_Fpx * thorn_G_wo );
   thorn_Mws_wo = max(0.000, thorn_Mws_wo - thorn_Fwx * thorn_G_wo );
-  
-  # thorn_Mcs = max(0, thorn_Mcs + thorn_Uc - thorn_Fcx * thorn_G); # 12
-  # thorn_Mns = max(0, thorn_Mns + thorn_Un - thorn_Fnx * thorn_G); # 12
-  # thorn_Mps = max(0, thorn_Mps + thorn_Up - thorn_Fpx * thorn_G); # 12
-  # thorn_Mws = max(0, thorn_Mws + thorn_Uw - thorn_Fwx * thorn_G); # 12
-  
+
+  # update the structural mass of each organ
   thorn_Mxco = max(0.0001, thorn_Mxco + thorn_G_co) ;# eq.1 and 2 in Thronley ('98)
   thorn_Mxno = max(0.0001, thorn_Mxno + thorn_G_no) ;# eq.1 and 2 in Thronley ('98)
   thorn_Mxpo = max(0.0001, thorn_Mxpo + thorn_G_po) ;# eq.1 and 2 in Thronley ('98)
   thorn_Mxwo = max(0.0001, thorn_Mxwo + thorn_G_wo) ;# eq.1 and 2 in Thronley ('98)
   
-  # this is part of the substrate inhibition code
+  # this is part of the substrate inhibition code --- will comment in later
   # thorn_Uc = (thorn_Kc * thorn_Mxco) / (1 + thorn_Cs/thorn_Jcs)
   # thorn_Uw = (thorn_Kw * thorn_Mxwo) / (1 + thorn_Ws/thorn_Jws)
   # thorn_Un = (thorn_Kn * thorn_Mxno) / (1 + thorn_Ns/thorn_Jns)
   # thorn_Up = (thorn_Kp * thorn_Mxpo) / (1 + thorn_Ps/thorn_Jps)
   
-#  use this code to simulate a loss in shoots e.g in fire
-  # if(i == 100)
-  # {
-  # 	thorn_Mxco = thorn_Mxco*0.1;
-  # 	thorn_Mcs_co = thorn_Mcs_co*0.0;
-  # 	thorn_Mns_co = thorn_Mns_co*0.0;
-  #   thorn_Mps_co = thorn_Mps_co*0.0;
-  # 	thorn_Mws_co = thorn_Mws_co*0.0;
-  # }
-
+  # Update concentrations of substrates C,N,P,W for co, no, po and wo.  
   thorn_Cs_co = thorn_Mcs_co/thorn_Mxco; #2
   thorn_Ns_co = thorn_Mns_co/thorn_Mxco; #2
   thorn_Ps_co = thorn_Mps_co/thorn_Mxco; #2
@@ -391,37 +351,20 @@ wrapper_fn_mod <- function(uptake)
   thorn_Ps_wo = thorn_Mps_wo/thorn_Mxwo; #2
   thorn_Ws_wo = thorn_Mws_wo/thorn_Mxwo; #2
   
-  # #  use this code to simulate a loss in shoots e.g in fire
-  # if(i == 100)
-  # {
-  # 	thorn_Mxco = thorn_Mxco*0.1;
-  # 	thorn_Mcs_co = thorn_Mcs_co*0.0;
-  # 	thorn_Mns_co = thorn_Mns_co*0.0;
-  #   thorn_Mps_co = thorn_Mps_co*0.0;
-  # 	thorn_Mws_co = thorn_Mws_co*0.0;
-  # 	
-  # 	thorn_Cs_co = thorn_Mcs_co/thorn_Mxco; #2
-  # 	thorn_Ns_co = thorn_Mns_co/thorn_Mxco; #2
-  # 	thorn_Ps_co = thorn_Mps_co/thorn_Mxco; #2
-  # 	thorn_Ws_co = thorn_Mws_co/thorn_Mxco; #2
-  # 	
-  # 	print(thorn_Cs_co)
-  # 	
-  # }
+#######################################################################################
+## adding substrate transport between pools following Thornley (1998). Substrates will
+## be transported between plants compartments based on concentration differences and 
+## resistances. This avoids the issue of reduced allocation as this model does not 
+## allocate growth, growth of each compartment is indepenant of the others but it 
+## allows every compartment to be both a source and a sink. Should an individual be
+## top-killed i.e. loss of the carbon organ and substrates contained within, 
+## C, N, P and W will be transported from all other organs until there is no 
+## concentration difference. This increases carbon organ growth and decreases growth
+## in all other compartments. 
   
-  #######################################################################################
-  ## adding substrate transport between pools following Thornley (1998). Substrates will
-  ## be transported between plants compartments based on concentration differences and 
-  ## resistances. This avoids the issue of reduced allocation as this model does not 
-  ## allocate growth, growth of each compartment is indepenant of the others but it 
-  ## allows every compartment to be both a source and a sink. Should an individual be
-  ## top-killed i.e. loss of the carbon organ and substrates contained within, 
-  ## C, N, P and W will be transported from all other organs until there is no 
-  ## concentration difference. This increases carbon organ growth and decreases growth
-  ## in all other compartments. 
-  
-  # these are specific transport resistances for substrates
+  # Specific transport resistances for substrates.
   # I'm assuming they are equal for all substrates and transport directions. 
+  # This assumption can be modified in the future (we calculate resistances in aDGVM)
   p_co = p_no = p_po = p_wo =1; # eq.4 Thornley 1998 
   
   q = 1 # eq.4 scaling parameter (Thornley 1998)
@@ -432,9 +375,18 @@ wrapper_fn_mod <- function(uptake)
   res_po = p_po / (thorn_Mxpo)^q; # eq.4 Thornley 1998 
   res_wo = p_wo / (thorn_Mxwo)^q; # eq.4 Thornley 1998 
   
-  # Transport of substrates between compartments. Here I extend Thornley uni-directional 
-  # model to make it bi-directional. 
+# Transport of substrates between compartments. Here I extend Thornley uni-directional 
+# model to make it bi-directional. I will add functionaltiy to make this 
+# uni-directional via the wrapper function tomorrow.
 
+# NOTE: The 0.5 in the transport equations is a tuning parameter which dampens 
+# oscillatoins in substrate concentrations. The model still preforms qualititively the
+# same without but has faster movement of concentratoins and it makes the plots 
+# difficult to exmaine.
+  
+# NOTE: Positive transport values indicate transport away from organ (source). 
+#       Negative values indicitate transport to an organ (sink).
+  
   # carbon substrate transport
   Tc_co_to_no = 0.5*((thorn_Cs_co - thorn_Cs_no) / (res_co + res_no)) # CO to NO
   Tc_co_to_po = 0.5*((thorn_Cs_co - thorn_Cs_po) / (res_co + res_po)) # CO to PO
@@ -444,34 +396,32 @@ wrapper_fn_mod <- function(uptake)
   Tc_no_to_wo = 0.5*((thorn_Cs_no - thorn_Cs_wo) / (res_no + res_wo)) # NO to WO
   Tc_po_to_wo = 0.5*((thorn_Cs_po - thorn_Cs_wo) / (res_po + res_wo)) # PO to WO
   
-  # print(c("Tc_cn Tc_cp Tc_cw Tc_np Tc_nw Tc_pw"))
-  # print(round(c(Tc_co_to_no, Tc_co_to_po, Tc_co_to_wo, Tc_no_to_po, Tc_no_to_wo, Tc_po_to_wo),2))
-  
   # nitrogen transport
-  Tn_co_to_no = 0.5*((thorn_Ns_co - thorn_Ns_no) / (res_co + res_no)) # transport of nitrogen substrate from the carbon organ to the nitrogen organ
-  Tn_co_to_po = 0.5*((thorn_Ns_co - thorn_Ns_po) / (res_co + res_po)) # transport of nitrogen substrate from the carbon organ to the phosphorus organ
-  Tn_co_to_wo = 0.5*((thorn_Ns_co - thorn_Ns_wo) / (res_co + res_wo)) # transport of nitrogen substrate from the carbon organ to the water organ
+  Tn_co_to_no = 0.5*((thorn_Ns_co - thorn_Ns_no) / (res_co + res_no)) # CO to NO
+  Tn_co_to_po = 0.5*((thorn_Ns_co - thorn_Ns_po) / (res_co + res_po)) # CO to PO
+  Tn_co_to_wo = 0.5*((thorn_Ns_co - thorn_Ns_wo) / (res_co + res_wo)) # CO to WO
   
-  Tn_no_to_po = 0.5*((thorn_Ns_no - thorn_Ns_po) / (res_no + res_po)) # transport of nitrogen substrate from the nitrogen organ to the phosphorus organ
-  Tn_no_to_wo = 0.5*((thorn_Ns_no - thorn_Ns_wo) / (res_no + res_wo)) # transport of nitrogen substrate from the nitrogen organ to the water organ
-  Tn_po_to_wo = 0.5*((thorn_Ns_po - thorn_Ns_wo) / (res_po + res_wo)) # transport of nitrogen substrate from the phosphorus organ to the water organ
+  Tn_no_to_po = 0.5*((thorn_Ns_no - thorn_Ns_po) / (res_no + res_po)) # NO to PO
+  Tn_no_to_wo = 0.5*((thorn_Ns_no - thorn_Ns_wo) / (res_no + res_wo)) # NO to WO
+  Tn_po_to_wo = 0.5*((thorn_Ns_po - thorn_Ns_wo) / (res_po + res_wo)) # PO to WO
   # phosphorus transport
-  Tp_co_to_no = 0.5*((thorn_Ps_co - thorn_Ps_no) / (res_co + res_no)) # transport of phosphorus substrate from the carbon organ to the nitrogen organ
-  Tp_co_to_po = 0.5*((thorn_Ps_co - thorn_Ps_po) / (res_co + res_po)) # transport of phosphorus substrate from the carbon organ to the phosphorus organ
-  Tp_co_to_wo = 0.5*((thorn_Ps_co - thorn_Ps_wo) / (res_co + res_wo)) # transport of phosphorus substrate from the carbon organ to the water organ
+  Tp_co_to_no = 0.5*((thorn_Ps_co - thorn_Ps_no) / (res_co + res_no)) # CO to NO
+  Tp_co_to_po = 0.5*((thorn_Ps_co - thorn_Ps_po) / (res_co + res_po)) # CO to PO
+  Tp_co_to_wo = 0.5*((thorn_Ps_co - thorn_Ps_wo) / (res_co + res_wo)) # CO to WO
   
-  Tp_no_to_po = 0.5*((thorn_Ps_no - thorn_Ps_po) / (res_no + res_po)) # transport of phosphorus substrate from the nitrogen organ to the phosphorus organ
-  Tp_no_to_wo = 0.5*((thorn_Ps_no - thorn_Ps_wo) / (res_no + res_wo)) # transport of phosphorus substrate from the nitrogen organ to the water organ
-  Tp_po_to_wo = 0.5*((thorn_Ps_po - thorn_Ps_wo) / (res_po + res_wo)) # transport of phosphorus substrate from the phosphorus organ to the water organ
+  Tp_no_to_po = 0.5*((thorn_Ps_no - thorn_Ps_po) / (res_no + res_po)) # NO to PO
+  Tp_no_to_wo = 0.5*((thorn_Ps_no - thorn_Ps_wo) / (res_no + res_wo)) # NO to WO
+  Tp_po_to_wo = 0.5*((thorn_Ps_po - thorn_Ps_wo) / (res_po + res_wo)) # PO to WO
   # water transport
-  Tw_co_to_no = 0.5*((thorn_Ws_co - thorn_Ws_no) / (res_co + res_no)) # transport of water substrate from the carbon organ to the nitrogen organ
-  Tw_co_to_po = 0.5*((thorn_Ws_co - thorn_Ws_po) / (res_co + res_po)) # transport of water substrate from the carbon organ to the phosphorus organ
-  Tw_co_to_wo = 0.5*((thorn_Ws_co - thorn_Ws_wo) / (res_co + res_wo)) # transport of water substrate from the carbon organ to the water organ
+  Tw_co_to_no = 0.5*((thorn_Ws_co - thorn_Ws_no) / (res_co + res_no)) # CO to NO
+  Tw_co_to_po = 0.5*((thorn_Ws_co - thorn_Ws_po) / (res_co + res_po)) # CO to PO
+  Tw_co_to_wo = 0.5*((thorn_Ws_co - thorn_Ws_wo) / (res_co + res_wo)) # CO to WO
   
-  Tw_no_to_po = 0.5*((thorn_Ws_no - thorn_Ws_po) / (res_no + res_po)) # transport of water substrate from the carbon organ to the nitrogen organ
-  Tw_no_to_wo = 0.5*((thorn_Ws_no - thorn_Ws_wo) / (res_no + res_wo)) # transport of water substrate from the carbon organ to the phosphorus organ
-  Tw_po_to_wo = 0.5*((thorn_Ws_po - thorn_Ws_wo) / (res_po + res_wo)) # transport of water substrate from the carbon organ to the water organ
+  Tw_no_to_po = 0.5*((thorn_Ws_no - thorn_Ws_po) / (res_no + res_po)) # NO to PO
+  Tw_no_to_wo = 0.5*((thorn_Ws_no - thorn_Ws_wo) / (res_no + res_wo)) # NO to WO
+  Tw_po_to_wo = 0.5*((thorn_Ws_po - thorn_Ws_wo) / (res_po + res_wo)) # PO to WO
   
+  # re-calculate substrate masses for each compartment following transport
   thorn_Mcs_co = max(0.000, thorn_Mcs_co - Tc_co_to_no - Tc_co_to_po - Tc_co_to_wo);
   thorn_Mns_co = max(0.000, thorn_Mns_co - Tn_co_to_no - Tn_co_to_po - Tn_co_to_wo);
   thorn_Mps_co = max(0.000, thorn_Mps_co - Tp_co_to_no - Tp_co_to_po - Tp_co_to_wo);
@@ -492,6 +442,7 @@ wrapper_fn_mod <- function(uptake)
   thorn_Mps_wo = max(0.000, thorn_Mps_wo + Tp_co_to_wo + Tp_no_to_wo + Tp_po_to_wo);
   thorn_Mws_wo = max(0.000, thorn_Mws_wo + Tw_co_to_wo + Tw_no_to_wo + Tw_po_to_wo);
   
+  # re-calculate substrate concentrations for each compartment following transport
   thorn_Cs_co = thorn_Mcs_co/thorn_Mxco; #2
   thorn_Ns_co = thorn_Mns_co/thorn_Mxco; #2
   thorn_Ps_co = thorn_Mps_co/thorn_Mxco; #2
@@ -512,11 +463,13 @@ wrapper_fn_mod <- function(uptake)
   thorn_Ps_wo = thorn_Mps_wo/thorn_Mxwo; #2
   thorn_Ws_wo = thorn_Mws_wo/thorn_Mxwo; #2
   
+  # re-calculate the fractions of mass in plant organs
   thorn_Fxco = thorn_Mxco/thorn_Mx; #4
   thorn_Fxwo = thorn_Mxwo/thorn_Mx; #4
   thorn_Fxno = thorn_Mxno/thorn_Mx; #4
   thorn_Fxpo = thorn_Mxpo/thorn_Mx; #4
   
+  # the double << make the values global and available outside the wrapper fn.
   M[i,1] <<- thorn_Mxco
   M[i,2] <<- thorn_Mxwo
   M[i,3] <<- thorn_Mxno
@@ -608,7 +561,7 @@ wrapper_fn_mod <- function(uptake)
 }
 @
 
-<<>>=
+<<echo=FALSE, include=F>>=
 colnames(M)<-c(
    "Mxco"
   ,"Mxwo"
