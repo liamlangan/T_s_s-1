@@ -31,27 +31,28 @@ Included here is an R version of Thornley allocation model (TAM) as in Thornley 
 
 
 <<>>=
-###############################################################################
-# R version of Thornley allcoation model (TAM) as in Thornley and Parsons 2014. J. Theor. Biol. 342: 1-14
+######################################################################################
+# R version of Thornley allcoation model (TAM) as in Thornley and Parsons 2014. - 
+# J. Theor. Biol. 342: 1-14
 # Author: Steven Higgins
-# Rewritten to include elements of Thornley 1998 Modelling shoot-root relations. The only way forward? (https://doi.org/10.1006/anbo.1997.0529) 
-# Author: Liam Langan 20.11.2017 re-coded orgiginal SH code to add source sink dynamics and remove predefined allocation 
-# This version with carbon organ, nitrogen organ, phosphorus organ and water organ 
-# This version includes separate substrate pools for each organ and allows bi-directional 
-# transport of substrates betweens organs. 
-###############################################################################
+# Rewritten to include elements of Thornley 1998 -  
+# Modelling shoot-root relations. The only way forward? 
+# (https://doi.org/10.1006/anbo.1997.0529) 
+# Author: Liam Langan 20.11.2017 re-coded orgiginal SH code to add source sink 
+# dynamics and remove predefined allocation. 
+# This version with carbon organ, nitrogen organ, phosphorus organ and water organ. 
+# This version includes separate substrate pools for each organ and allows 
+# bi-directional transport of substrates betweens organs. 
+######################################################################################
 
-## initial values for fractions of structural dry matter in shoot, root, mycor
-# thorn_Fxsh_t0 = 0.2;
-# thorn_Fxrt_t0 = 0.3;
-# thorn_Fxmy_t0 = 0.5;
-## initial values for mass of structural dry matter in rt, sh, my
+## initial values for mass of structural dry matter in carbon organ (co), 
+## nitrogen organ (no), phosphorus organ (po) and water organ (wo)
 size.factor<-0.1;
 
 thorn_Mxco_t0 = 0.25/size.factor;
 thorn_Mxno_t0 = 0.25/size.factor;
-thorn_Mxpo_t0 = 0.25/size.factor; #Thornley uses has 0.5
-thorn_Mxwo_t0 = 0.25/size.factor; #Thornley uses has 0.5
+thorn_Mxpo_t0 = 0.25/size.factor; 
+thorn_Mxwo_t0 = 0.25/size.factor; 
 
 ## intitial values for mass of substrates C,N,P for carbon organ
 thorn_Mcs_co_t0 = 0.025/size.factor*0.25;
@@ -78,46 +79,45 @@ thorn_Mps_wo_t0 = 0.005/size.factor*0.25;
 thorn_Mws_wo_t0 = 0.25/size.factor*0.25;
 
 ## upktake rates of C,N,P,W
-#default to go back to
-base =  0.0002*100; #aDGVM produces numbers around 0.00001 to 0.001 for C_net/plant_mass
+base =  0.0002*100; 
 thorn_Kc  = base*1.0;
 thorn_Kw  = 0.0015;
 thorn_Kn  = 0.25;
 thorn_Kp  = 0.1;
 
-#product inhibittion, not used
-#thorn_Jcs = 0.03;
-#thorn_Jns = 0.01;
-#thorn_Jps = 0.005;
-#thorn_Jws = 0.003;
-
+## product inhibittion 
+thorn_Jcs = 0.03; # Thornley ('98) 0.1
+thorn_Jns = 0.01;
+thorn_Jps = 0.005;
+thorn_Jws = 0.003;
+## mass inhibition via self shading or competition Thornley ('98) eq.3 
+thorn_Kmc = thorn_Kmn = thorn_Kmp = thorn_Kmc = 1;
 
 ## Fractions of C, N, P in structural dry matter 
-#first three are as in Thornley, Fwx is calibrated, higher values do not work
-# so Fwx is artificial. Maybe we have to think of this as water used in metabolism?
+# the first three are as in Thornley, Fwx is calibrated, higher values do not work
+# so Fwx is artificial. One should probably think of this as water used in 
+# metabilism and for cellular growht. These fractions could be easily 
+# redefind for the different plant compartmetns now i.e. Fnx_co, Fnx_no, Fnx_po
+# could have different values. 
 thorn_Fcx = 0.4;
 thorn_Fnx = 0.02;
 thorn_Fpx = 0.005;
 thorn_Fwx = 0.0001;
 
-
 ## other constants
-thorn_q = 0.5;     #control parameter for allocation
 #thorn_Kg = 200	; #structural growth rate constant; Thornley uses 200000
-thorn_Kg = 0.1	; #structural growth rate constant; Thornley uses 200000
+thorn_Kg = 0.1	; # Thornley used 0.1 in his 1998 paper but this is a tuning param.
 
-mycol=c("green","blue","black","red")
-
-#---start model----
-
-#set initial states
-#for aDGVM this will have to go in the section that creates a new individual
-## STATE VARIABLE initial values for mass of structural dry matter in rt, sh, my
+######################################################################################
+#---start model----# 
+# set initial states
+# for aDGVM this will have to go in the section that creates a new individual
+## STATE VARIABLE initial values for mass of structural dry matter in co, no, po, wo.
 thorn_Mxco = thorn_Mxco_t0;
 thorn_Mxwo = thorn_Mxwo_t0;
 thorn_Mxno = thorn_Mxno_t0;
 thorn_Mxpo = thorn_Mxpo_t0;
-## STATE VARIABLE initial values for mass of substrate C,N,P
+## STATE VARIABLE initial values for mass of substrate C,N,P,W in co, no, po, wo.  
 thorn_Mcs_co = thorn_Mcs_co_t0;
 thorn_Mns_co = thorn_Mns_co_t0;
 thorn_Mps_co = thorn_Mps_co_t0;
@@ -140,7 +140,7 @@ thorn_Mws_wo = thorn_Mws_po_t0;
 
 thorn_Mx_t0 = thorn_Mxco_t0 + thorn_Mxno_t0 + thorn_Mxpo_t0 + thorn_Mxwo_t0;
 
-## AUX VARIABLE initial values for concentrations of substrates C,N,P
+## AUX VARIABLE initial values for concentrations of substrates C,N,P,W
 thorn_Cs_co = thorn_Mcs_co_t0/thorn_Mxco;
 thorn_Ns_co = thorn_Mns_co_t0/thorn_Mxco;
 thorn_Ps_co = thorn_Mps_co_t0/thorn_Mxco;
@@ -753,7 +753,6 @@ colnames(M)<-c(
   ,"Tw_no_to_po"
   ,"Tw_no_to_wo"
   ,"Tw_po_to_wo")
-
 @
 
 % % # %\begin{centering}
@@ -1162,17 +1161,8 @@ thorn\_Fxco = \frac{thorn\_Mxco}{thorn\_Mx}.
 \noindent Clearly, as above ground mass is removed, the fraction of mass in the above ground compartment is reduced. Additionally, since total plant biomass is reduced, the relative fractions of the other plant compartments increases. This decrease in the fraction of plant mass above ground and increase in the fractions of masses below ground reduce above ground and increase below ground allocation. Further, reduced leaf area reduces carbon uptake (photosynthesis) ($thorn\_Kc$) which further reduces allocation to the above ground compartment. In summary, the response of TAM to herbivory and fire is not consistent with the responses from the ecological literature. Further, when biomass is suddenly removed from the system (irrespective of which compartment, this logic holds for all compartments I believe) the resulting allocation patterns do not maximise growth rates. 
 
 \noindent Revising the allcation equations by removing the structural fraction components as follows:
-<<warning=FALSE>>=
-# thorn_h1 = ( 	1 * (thorn_Kc / thorn_Cs)^thorn_q + 
-# 			        1 * (thorn_Kw / thorn_Ws)^thorn_q +
-# 			        1 * (thorn_Kn / thorn_Ns)^thorn_q +
-# 			        1 * (thorn_Kp / thorn_Ps)^thorn_q );
 
-#thorn_lambda_co = 1 * (thorn_Kc / thorn_Cs)^thorn_q / thorn_h1;
-#thorn_lambda_wo = 1 * (thorn_Kw / thorn_Ws)^thorn_q / thorn_h1;
-#thorn_lambda_no = 1 * (thorn_Kn / thorn_Ns)^thorn_q / thorn_h1;
-#thorn_lambda_po = 1 * (thorn_Kp / thorn_Ps)^thorn_q / thorn_h1;
-@
+
 produces almost identical leaf biomass growth to Thornley's scheme when biomass accumulation is not disturbed, compare Figs. \ref{fig:1} and \ref{fig:2} (left panels). Allocation to plant compartments is also very similar, Figs. \ref{fig:1} and \ref{fig:3} (left panel). With herbivory turned on, Figs. \ref{fig:1} to \ref{fig:4} (centre panels) and Fig. \ref{fig:5}, both allocation schemes show a similar initial biomass response for both leaf and herbivore. However, allocation to leaf using the Thornley scheme decreases while in the revised scheme allocatoin to leaf increases. The difference in these allocation schemes leads to grass leaf biomass being completely removed followed by herbivore extinction using the Thornley scheme, see Fig. \ref{fig:5}. 
 
 Illustrated in Figs. \ref{fig:1} to \ref{fig:4} (right panels) is the growth and allocation response to fire using these two allocation schemes. Post fire biomass recovery is faster in the revised scheme owing to increased allocation to leaf following fire as opposed to a decrese using Thornley's scheme. Thornley is aware that apporximating fire in this way reduces allocation to leaf, see Fig. 3 in \cite{thornley_modelling_1998}, but does not seem perturbed by this. 
