@@ -1,0 +1,1184 @@
+\documentclass[a4paper]{article}
+\usepackage{fullpage}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\textwidth=16cm
+\usepackage[backend=bibtex]{biblatex}
+\bibliography{My_Library.bib}
+
+<<echo=FALSE, warning=FALSE>>=
+rm(list = ls()) # I'm removing everything here so be careful to just press go
+setwd("/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES")
+Sys.setenv(TEXINPUTS=getwd(),
+           BIBINPUTS=getwd(),
+           BSTINPUTS=getwd())
+@
+           
+\begin{document}
+\title{Reporting on Thornley's allocation model and Herbivore model development}
+\author{Liam Langan}
+\maketitle
+
+<<echo=FALSE, warning=FALSE>>=
+library(knitr);library(deSolve); library(lattice)
+@
+
+\section{Thornley allocation model (TAM)}
+Included here is an R version of Thornley allocation model (TAM) as in Thornley and Parsons 2014. J. Theor. Biol. 342: 1-14 \cite{thornley_allocation_2014}. This model includes state variables for the fractions of carbon, nitrogen, phosphorus and water in structural dry matter:
+
+<<>>=
+thorn_Fcx = 0.4;  # carbon (C)
+thorn_Fnx = 0.02; # nitrogen (N)
+thorn_Fpx = 0.005;  # phosphorus (P)
+thorn_Fwx = 0.0001; # water (W)
+@
+
+\noindent Fwx is artificial and not included in Thornleys model but it's inclusion is necessary for inclusion in any vegetation model to allow allocation for water uptake to be modelled. $thorn\_q$ is a control parameter for allocation while $thorn\_Kg$ is a constant which defines the structural growth rate:
+<<>>=
+thorn_q = 0.5;
+thorn_Kg = 200; 
+#thorn_Kg = 10; 
+@
+
+\noindent We define plant carbon, water, nitrogen and phosphorus uptake rates as: 
+<<>>=
+#default to go back to
+#aDGVM produces numbers around 0.00001 to 0.001 for base (C_net/plant_mass)
+#base =  0.0002*100; 
+base =  0.0050*100; 
+thorn_Kc  = base*1.0;
+thorn_Kw  = base*0.0015;
+thorn_Kn  = base*0.25;
+thorn_Kp  = base*0.1;
+@
+\noindent these pararmeters will need to be optimised in the furure and will be based on trait trade-offs in aDGVM2. Initial values for structural and substrate C,N,P and W are given by:
+<<>>=
+size.factor<-1;
+thorn_Mxco_t0 = 5000/size.factor; # mass of carbon organ at time=0
+thorn_Mxno_t0 = 5000/size.factor; # mass of nitrogen organ at time=0
+thorn_Mxpo_t0 = 5000/size.factor; # mass of phosphorus organ at time=0
+thorn_Mxwo_t0 = 5000/size.factor; # mass of water organ at time=0
+## intitial values at time=0 
+## for mass of substrates C,N,P,W
+thorn_Mcs_t0 = 0.025/size.factor;
+thorn_Mns_t0 = 0.01/size.factor;
+thorn_Mps_t0 = 0.005/size.factor;
+thorn_Mws_t0 = 0.25/size.factor;
+
+thorn_Mxco = thorn_Mxco_t0;
+thorn_Mxwo = thorn_Mxwo_t0;
+thorn_Mxno = thorn_Mxno_t0;
+thorn_Mxpo = thorn_Mxpo_t0;
+## STATE VARIABLE initial values at time=0 
+## for mass of substrate C,N,P
+thorn_Mcs = thorn_Mcs_t0;
+thorn_Mns = thorn_Mns_t0;
+thorn_Mps = thorn_Mps_t0;
+thorn_Mws = thorn_Mws_t0;
+	
+## AUX VARIABLE initial values at time=0 
+## for concentrations of substrates C,N,P
+thorn_Mx_t0 = thorn_Mxco + thorn_Mxno + thorn_Mxpo + thorn_Mxwo;
+thorn_Cs = thorn_Mcs_t0/thorn_Mx_t0;
+thorn_Ns = thorn_Mns_t0/thorn_Mx_t0;
+thorn_Ps = thorn_Mps_t0/thorn_Mx_t0;
+thorn_Ws = thorn_Mws_t0/thorn_Mx_t0;
+## AUX VARIABLE initial values at time=0 
+## for fractions of structural dry matter in shoot, root, mycor
+thorn_Fxco = thorn_Mxco_t0/thorn_Mx_t0;
+thorn_Fxwo = thorn_Mxwo_t0/thorn_Mx_t0;
+thorn_Fxno = thorn_Mxno_t0/thorn_Mx_t0;
+thorn_Fxpo = thorn_Mxpo_t0/thorn_Mx_t0;
+
+@
+
+\noindent The total structural masss $thorn\_Mx$ is simply the sum of all mass compartments. The total uptake of C, N, P and W is $thorn\_Ux$ (x denotes the respectives pools and compartments), the new mass of substrates $thorn_Mxs$ is then calculated following which concentrations of substrates are calculated $thorn\_Xs$. Growth in TAM is a function of the structural growth constant $thorn\_Kg$, total mass $thorn\_Mx$, and the concentration of substrates $thorn\_Xs$.  
+<<>>=
+thorn_Mx = thorn_Mxco + thorn_Mxwo + thorn_Mxno + thorn_Mxpo ; #3
+
+thorn_Uc = thorn_Kc * thorn_Mxco; # Uptake C is per unit structural mass
+thorn_Un = thorn_Kn * thorn_Mxno; # Uptake N is per unit structural mass
+thorn_Up = thorn_Kp * thorn_Mxpo; # Uptake P is per unit structural mass
+thorn_Uw = thorn_Kw * thorn_Mxwo; # Uptake W is per unit structural mass
+
+thorn_Mcs = thorn_Mcs + thorn_Uc #12
+thorn_Mns = thorn_Mns + thorn_Un #12
+thorn_Mps = thorn_Mps + thorn_Up #12
+thorn_Mws = thorn_Mws + thorn_Uw #  
+
+thorn_Cs = thorn_Mcs/thorn_Mx; #2
+thorn_Ns = thorn_Mns/thorn_Mx; #2
+thorn_Ps = thorn_Mps/thorn_Mx; #2
+thorn_Ws = thorn_Mws/thorn_Mx; #2
+
+thorn_G = thorn_Kg*thorn_Mx*thorn_Cs*thorn_Ns*thorn_Ps*thorn_Ws ; #see 13 and 12
+@
+\noindent How new growth is aportioned between plant compartments is governed by an "invented dynamic allocation algorithm" \cite{thornley_allocation_2014} which is designed to produce exponential growth of a plant: 
+<<>>=
+thorn_h1 =      ( 	thorn_Fxco * (thorn_Kc / thorn_Cs)^thorn_q + 
+			thorn_Fxwo * (thorn_Kw / thorn_Ws)^thorn_q +
+			thorn_Fxno * (thorn_Kn / thorn_Ns)^thorn_q +
+			thorn_Fxpo * (thorn_Kp / thorn_Ps)^thorn_q );
+			
+thorn_lambda_co = thorn_Fxco * (thorn_Kc / thorn_Cs)^thorn_q / thorn_h1; #31 
+thorn_lambda_wo = thorn_Fxwo * (thorn_Kw / thorn_Ws)^thorn_q / thorn_h1; #31
+thorn_lambda_no = thorn_Fxno * (thorn_Kn / thorn_Ns)^thorn_q / thorn_h1; #31
+thorn_lambda_po = thorn_Fxpo * (thorn_Kp / thorn_Ps)^thorn_q / thorn_h1; #31
+@
+\noindent Thus, allocation between plant compartments $thorn\_lambda\_Xo$ is influenced by the structural masses of plant compartments $thorn\_FxXo$, substrate uptake rates $thorn\_x$ and substrate concentrations $thorn\_Xs$. Below I examine how this model responds to herbivore and fire induced perturbations.  
+
+<<echo=FALSE, warning=FALSE>>=
+
+#product inhibittion, not used
+thorn_Jcs = 0.03;
+thorn_Jns = 0.01;
+thorn_Jps = 0.005;
+thorn_Jws = 0.003;
+
+mycol=c("green","blue","black","red")
+
+#---start model----
+
+#set initial states
+#for aDGVM this will have to go in the section that creates a new individual
+## STATE VARIABLE initial values for mass of structural dry matter in rt, sh, my
+	thorn_Mxco = thorn_Mxco_t0;
+  thorn_Mxwo = thorn_Mxwo_t0;
+	thorn_Mxno = thorn_Mxno_t0;
+	thorn_Mxpo = thorn_Mxpo_t0;
+	## STATE VARIABLE initial values for mass of substrate C,N,P
+	thorn_Mcs = thorn_Mcs_t0;
+	thorn_Mns = thorn_Mns_t0;
+	thorn_Mps = thorn_Mps_t0;
+	thorn_Mws = thorn_Mws_t0;
+	
+	## AUX VARIABLE initial values for concentrations of substrates C,N,P
+	thorn_Mx_t0 = thorn_Mxco + thorn_Mxno + thorn_Mxpo + thorn_Mxwo;
+	thorn_Cs = thorn_Mcs_t0/thorn_Mx_t0;
+	thorn_Ns = thorn_Mns_t0/thorn_Mx_t0;
+	thorn_Ps = thorn_Mps_t0/thorn_Mx_t0;
+	thorn_Ws = thorn_Mws_t0/thorn_Mx_t0;
+	## AUX VARIABLE initial values for fractions of structural dry matter in shoot, root, mycor
+	thorn_Fxco = thorn_Mxco_t0/thorn_Mx_t0;
+	thorn_Fxwo = thorn_Mxwo_t0/thorn_Mx_t0;
+	thorn_Fxno = thorn_Mxno_t0/thorn_Mx_t0;
+	thorn_Fxpo = thorn_Mxpo_t0/thorn_Mx_t0;
+@
+
+%\section{Stoichometric producer-herbivore model}
+
+%We use the consumer component from the stoichometric producer-herbivore model from \cite{muller_stoichiometric_2001} to remove carbon structural and substrate mass from TAM plants.
+
+<<echo=FALSE, warning=TRUE>>=
+
+muller_mod <- function(t,y,parameters, input)
+{
+  Xp   <- input[1]  # producer inital density - TAM carbon organ 
+  np   <- input[3]  # phosphorus to carbon ratio in producer from TAM
+  Xc   <- y[1]  # consumer initial density 
+  which_i <- input[5]
+  
+  with(as.list(parameters, input),
+       {
+         #eq.3 - consumer specific feeding rate
+         jp <- (jpm*Xp)/(Xp+K)  
+         
+         #eg.5 - producer nutrient reserve density
+         # m <- ((Ntot - nc*Xc)/Xp) - np 
+         m <- 1.0 # fixed to test TAM allocation responses
+         
+         # eq.6 - specific consumer biomass synthesis rate
+         rc <- ( 0 + ((yp2 + yn2*m)*jp)^-1 + ((yn1*m + yp1)*jp)^-1 - 
+                   ((yp1 + yp2 + m*(yn2 + yn1))*jp)^-1)^-1 - k
+
+         dXc <- ( rc - h )*Xc   #eq.4
+         
+         #eq.7 - nutrient limitation coefficient 
+         L <- (yp2 + yn2*m)/(yp1 + yn1*m)   
+         
+         res1 <- c(dXc)
+         res2<- c(jp, rc)
+         return(list(res1, res2))
+       }
+      )
+}
+@
+%\noindent Parameters for this model are defined below. 
+<<echo=FALSE, warning=TRUE>>=
+# consumer mortality rate day^-1 - make trait based on weight 
+# h <- 0.05
+# assume 30% change of dying in a year which equates to 0.0008% chance in a day
+h <- 0.0008   
+
+# np producer structural nutrient to carbon ratio - calculated from TAM
+
+# comsumer max feeding rate day^-1 - make trait based on weight
+# jpm <- 0.12
+# This should be 1-3% of body weight for megaherbivores Owen-Smith Fig. 5.1
+jpm <- 0.01
+
+# consumer feeding saturation parameter uM C - make trait based on weight
+# use Mulder and Hendriks 2013 Half-saturation caonstants in functional responses
+K <- 500 
+
+# consumer structural nutrient to carbon ratio 0.0125 - CONSTANT 
+nc <- 0.0125  
+
+# consumer yield coefficient for assimilating 
+# nutruents from producer nutrient reserves uM P um
+yn1 <- 80   
+
+# consumer yield coefficient for assimilating 
+# nutrients from producer structure
+# yp1 <- 0.262
+yp1 <- 0.75
+
+# consumer yield coefficient for assimilating 
+# carbon from producer nutrient reserves uM P um
+yn2 <- 0.75  
+
+# consumer yield coefficient for assimilating 
+# carbon from producer structure
+# yp2 <- 0.5
+yp2 <- 0.75
+
+# consumer specific maintainance + mortaility rate (0 - 0.3)
+# k <- 0.005  
+k <- 0.005  
+
+# Density of total nutrient in system - will come from soil properties
+Ntot <- 1000000000  
+
+
+p <- c(h=h, jpm=jpm, K=K, nc=nc, yn1=yn1, yp1=yp1, yn2=yn2, 
+       yp2=yp2, k=k, Ntot=Ntot)
+
+times <- seq(0,1, by=1) # time steps to run for - run model for 1 time step
+y0 <- c(Xc = 25) # initial consumer density
+@
+
+<<echo=FALSE, warning=TRUE>>=
+#<<>>=
+
+#R only make a matrix to store the variables for plotting
+#n.steps<-360*50
+n.steps<-360*10
+#M<-matrix(0,nrow=n.steps,ncol=26)
+
+##-----------------------------------
+# some grass seasonal growth scaling
+my_sin_in<- seq(0, (n.steps/360)*pi, length=n.steps)
+scaling_Kc <- pmax(0.1, pmin(1.0, abs(sin(my_sin_in))+0.5) )
+##-----------------------------------
+
+wrapper_fn_mod <- function(muller_on, fire_on, altered_allocation)
+{
+## the for loop
+for(i in 1:n.steps) {
+
+  turn_on_herbivores = muller_on
+  fire_shock = fire_on
+  new_allocation = altered_allocation
+  
+  if(i == 1)
+  {
+    thorn_Mxco = thorn_Mxco_t0;
+    thorn_Mxwo = thorn_Mxwo_t0;
+    thorn_Mxno = thorn_Mxno_t0;
+    thorn_Mxpo = thorn_Mxpo_t0;
+    thorn_Mcs = thorn_Mcs_t0;
+    thorn_Mns = thorn_Mns_t0;
+    thorn_Mps = thorn_Mps_t0;
+    thorn_Mws = thorn_Mws_t0;
+    thorn_Mx_t0 = thorn_Mxco + thorn_Mxno + thorn_Mxpo + thorn_Mxwo;
+    thorn_Cs = thorn_Mcs_t0/thorn_Mx_t0;
+    thorn_Ns = thorn_Mns_t0/thorn_Mx_t0;
+    thorn_Ps = thorn_Mps_t0/thorn_Mx_t0;
+    thorn_Ws = thorn_Mws_t0/thorn_Mx_t0;
+    thorn_Fxco = thorn_Mxco_t0/thorn_Mx_t0;
+    thorn_Fxwo = thorn_Mxwo_t0/thorn_Mx_t0;
+    thorn_Fxno = thorn_Mxno_t0/thorn_Mx_t0;
+    thorn_Fxpo = thorn_Mxpo_t0/thorn_Mx_t0;
+    
+    # thorn_lambda_co = 0.4
+    # thorn_lambda_wo = 0.2
+    # thorn_lambda_no = 0.2
+    # thorn_lambda_po = 0.2
+
+    M<<-matrix(0,nrow=n.steps,ncol=31)
+    y0 <- c(Xc = 25)
+  }
+  
+thorn_Mx = thorn_Mxco + thorn_Mxwo + thorn_Mxno + thorn_Mxpo ; #3
+
+nitrogen_sum = thorn_Ns*thorn_Mx + thorn_Fnx*thorn_Mx  
+
+if(i > 1)
+{
+  y0 <- c(Xc = M[i-1,25])
+}
+
+np <- (thorn_Ps*thorn_Mxco + thorn_Fpx*thorn_Mxco)/(thorn_Cs*thorn_Mxco + thorn_Fcx*thorn_Mxco)
+
+#print(np)
+
+if(turn_on_herbivores ==1)
+{
+LV_muller <- ode(y=y0, times, muller_mod, p, input=c(M[i-1, 1], 25, np, 4, i))
+# print(LV_muller)
+
+shoot_total_ratio = thorn_Mxco/thorn_Mx #proportion of plant that is shoot
+leaf_ratio = 1*shoot_total_ratio # proportion of plant that is leaf
+substrate_ratio =  1-((LV_muller[2,2]*LV_muller[2,3])/thorn_Mxco) # proportion of plant that is leaf
+
+thorn_Mxco <- pmax(0.0000, thorn_Mxco - (LV_muller[2,2]*LV_muller[2,3]))   
+thorn_Mcs  <- pmax(0.0000, thorn_Mcs - leaf_ratio*thorn_Mcs*(LV_muller[2,2]*LV_muller[2,3])) # substrates get lost too
+thorn_Mns  <- pmax(0.0000, thorn_Mns - leaf_ratio*thorn_Mns*(LV_muller[2,2]*LV_muller[2,3])) # substrates get lost too
+thorn_Mps  <- pmax(0.0000, thorn_Mps - leaf_ratio*thorn_Mps*(LV_muller[2,2]*LV_muller[2,3])) # substrates get lost too
+thorn_Mws  <- pmax(0.0000, thorn_Mws - leaf_ratio*thorn_Mws*(LV_muller[2,2]*LV_muller[2,3])) # substrates get lost too
+# thorn_Mcs  <- pmax(0.00001, thorn_Mcs*substrate_ratio*leaf_ratio) # substrates get lost too
+# thorn_Mns  <- pmax(0.00001, thorn_Mns*substrate_ratio*leaf_ratio) # substrates get lost too
+# thorn_Mps  <- pmax(0.00001, thorn_Mps*substrate_ratio*leaf_ratio) # substrates get lost too
+# thorn_Mws  <- pmax(0.00001, thorn_Mws*substrate_ratio*leaf_ratio) # substrates get lost too
+
+thorn_Mx = thorn_Mxco + thorn_Mxwo + thorn_Mxno + thorn_Mxpo ; #3
+
+thorn_Cs = thorn_Mcs/thorn_Mx; #2
+thorn_Ns = thorn_Mns/thorn_Mx; #2
+thorn_Ps = thorn_Mps/thorn_Mx; #2
+thorn_Ws = thorn_Mws/thorn_Mx; #2
+
+# thorn_Cs = pmin(1.0, thorn_Mcs/thorn_Mx); #2
+# thorn_Ns = pmin(1.0, thorn_Mns/thorn_Mx); #2
+# thorn_Ps = pmin(1.0, thorn_Mps/thorn_Mx); #2
+# thorn_Ws = pmin(1.0, thorn_Mws/thorn_Mx); #2
+
+thorn_Fxco = thorn_Mxco/thorn_Mx; #4
+thorn_Fxwo = thorn_Mxwo/thorn_Mx; #4
+thorn_Fxno = thorn_Mxno/thorn_Mx; #4
+thorn_Fxpo = thorn_Mxpo/thorn_Mx; #4
+}
+
+# thorn_Kc  = pmax(0.00001, ((base*1.0) ) );
+# thorn_Kc  = pmax(0.00001, ((base*1.0)*pmax(0.00001,1-thorn_Mxco/20000)) );
+thorn_Kc  = pmax(0.00001, ((base*1.0)/pmax(0.00001,(1 + thorn_Mxco/50))) );
+#thorn_Kc  = pmax(0.00001, (base*1.0)*pmax(0.1,1-thorn_Mx/10000));
+
+# thorn_Kw  = pmax(0.00001, 0.0015 );
+#thorn_Kw  = pmax(0.00001, 0.0015)*pmax(0.00001,1-thorn_Mxwo/20000);
+thorn_Kw  = pmax(0.00001, 0.0015)/pmax(0.00001,(1 + thorn_Mxwo/50));
+# thorn_Kw  = pmax(0.00001, base*0.0015*pmax(0.3,scaling_Kc[i]));
+
+# thorn_Kn  = pmax(0.00001, 0.2500 );
+thorn_Kn  = pmax(0.00001, 0.02500)/pmax(0.00001,(1 + thorn_Mxno/50));
+#thorn_Kn  = pmax(0.00001, 0.02500)/pmax(0.00001,1-thorn_Mxno/20000);
+# thorn_Kn  = pmax(0.00001, base*0.25*(1-(nitrogen_sum/100000)));
+
+# thorn_Kp  = pmax(0.00001, 0.1000 );
+#thorn_Kp  = pmax(0.00001, 0.01000)*pmax(0.00001,1-thorn_Mxpo/20000);
+thorn_Kp  = pmax(0.00001, 0.01000)/pmax(0.00001,(1 + thorn_Mxpo/50));
+
+# thorn_Uc = thorn_Kc * thorn_Mxco
+# thorn_Un = thorn_Kn * thorn_Mxno
+# thorn_Up = thorn_Kp * thorn_Mxpo
+# thorn_Uw = thorn_Kw * thorn_Mxwo
+
+# thorn_Cs = thorn_Mcs/thorn_Mx; #2
+# thorn_Ns = thorn_Mns/thorn_Mx; #2
+# thorn_Ps = thorn_Mps/thorn_Mx; #2
+# thorn_Ws = thorn_Mws/thorn_Mx; #2
+
+thorn_Uc = (thorn_Kc * thorn_Mxco) / (1 + thorn_Cs/thorn_Jcs) # this is with product inhibition
+thorn_Uw = (thorn_Kw * thorn_Mxwo) / (1 + thorn_Ws/thorn_Jws) # this is with product inhibition
+thorn_Un = (thorn_Kn * thorn_Mxno) / (1 + thorn_Ns/thorn_Jns) # this is with product inhibition
+thorn_Up = (thorn_Kp * thorn_Mxpo) / (1 + thorn_Ps/thorn_Jps) # this is with product inhibition
+
+# thorn_Uc = (thorn_Kc * thorn_Mxco) / ((1 + thorn_Mxco/100)*(1 + thorn_Cs/thorn_Jcs)) # this is with product inhibition
+# thorn_Uw = (thorn_Kw * thorn_Mxwo) / ((1 + thorn_Mxwo/100)*(1 + thorn_Ws/thorn_Jws)) # this is with product inhibition
+# thorn_Un = (thorn_Kn * thorn_Mxno) / ((1 + thorn_Mxno/100)*(1 + thorn_Ns/thorn_Jns)) # this is with product inhibition
+# thorn_Up = (thorn_Kp * thorn_Mxpo) / ((1 + thorn_Mxpo/100)*(1 + thorn_Ps/thorn_Jps)) # this is with product inhibition
+
+thorn_Mcs = pmax(0.00001, thorn_Mcs + thorn_Uc ); #12
+thorn_Mns = pmax(0.00001, thorn_Mns + thorn_Un ); #12
+thorn_Mps = pmax(0.00001, thorn_Mps + thorn_Up ); #12
+thorn_Mws = pmax(0.00001, thorn_Mws + thorn_Uw ); 
+
+# thorn_Cs = pmin(1.0, thorn_Mcs/thorn_Mx); #2
+# thorn_Ns = pmin(1.0, thorn_Mns/thorn_Mx); #2
+# thorn_Ps = pmin(1.0, thorn_Mps/thorn_Mx); #2
+# thorn_Ws = pmin(1.0, thorn_Mws/thorn_Mx); #2
+thorn_Cs = thorn_Mcs/thorn_Mx; #2
+thorn_Ns = thorn_Mns/thorn_Mx; #2
+thorn_Ps = thorn_Mps/thorn_Mx; #2
+thorn_Ws = thorn_Mws/thorn_Mx; #2
+
+if(new_allocation == 0)
+{  
+
+thorn_h1 =      ( 	thorn_Fxco * (thorn_Kc / thorn_Cs)^thorn_q +
+			thorn_Fxwo * (thorn_Kw / thorn_Ws)^thorn_q +
+			thorn_Fxno * (thorn_Kn / thorn_Ns)^thorn_q +
+			thorn_Fxpo * (thorn_Kp / thorn_Ps)^thorn_q );
+
+thorn_lambda_co = thorn_Fxco * (thorn_Kc / thorn_Cs)^thorn_q / thorn_h1; #31
+thorn_lambda_wo = thorn_Fxwo * (thorn_Kw / thorn_Ws)^thorn_q / thorn_h1; #31
+thorn_lambda_no = thorn_Fxno * (thorn_Kn / thorn_Ns)^thorn_q / thorn_h1; #31
+thorn_lambda_po = thorn_Fxpo * (thorn_Kp / thorn_Ps)^thorn_q / thorn_h1; #31
+
+}
+
+if(new_allocation == 1)
+{  
+thorn_h1 =      ( 	1 * (thorn_Kc / thorn_Cs)^thorn_q + 
+			1 * (thorn_Kw / thorn_Ws)^thorn_q +
+			1 * (thorn_Kn / thorn_Ns)^thorn_q +
+			1 * (thorn_Kp / thorn_Ps)^thorn_q );
+			
+thorn_lambda_co = (thorn_Kc / thorn_Cs)^thorn_q / thorn_h1; #31
+thorn_lambda_wo = (thorn_Kw / thorn_Ws)^thorn_q / thorn_h1; #31
+thorn_lambda_no = (thorn_Kn / thorn_Ns)^thorn_q / thorn_h1; #31
+thorn_lambda_po = (thorn_Kp / thorn_Ps)^thorn_q / thorn_h1; #31
+
+sum_t_l <- thorn_lambda_co + thorn_lambda_wo+ thorn_lambda_no + thorn_lambda_po
+
+thorn_lambda_co = thorn_lambda_co/sum_t_l
+thorn_lambda_wo = thorn_lambda_wo/sum_t_l
+thorn_lambda_no = thorn_lambda_no/sum_t_l
+thorn_lambda_po = thorn_lambda_po/sum_t_l
+}
+
+if(i == 360*3 && fire_shock==1)
+ {
+ 	thorn_Mxco = thorn_Mxco*0.25;
+ # 	thorn_Mcs = thorn_Mcs*0.25;
+ # 	thorn_Mns = thorn_Mns*0.25;
+ #  thorn_Mps = thorn_Mps*0.25;
+ # 	thorn_Mws = thorn_Mws*0.25;
+ }
+
+# thorn_Uc = thorn_Kc * thorn_Mxco
+# thorn_Un = thorn_Kn * thorn_Mxno
+# thorn_Up = thorn_Kp * thorn_Mxpo
+# thorn_Uw = thorn_Kw * thorn_Mxwo
+
+# thorn_Uc = (thorn_Kc * thorn_Mxco) / (1 + thorn_Cs/thorn_Jcs) # this is with product inhibition
+# thorn_Uw = (thorn_Kw * thorn_Mxwo) / (1 + thorn_Ws/thorn_Jws) # this is with product inhibition
+# thorn_Un = (thorn_Kn * thorn_Mxno) / (1 + thorn_Ns/thorn_Jns) # this is with product inhibition
+# thorn_Up = (thorn_Kp * thorn_Mxpo) / (1 + thorn_Ps/thorn_Jps) # this is with product inhibition
+# thorn_Uc = (thorn_Kc * thorn_Mxco) / ((1 + thorn_Mxco/10)*(1 + thorn_Cs/thorn_Jcs)) # this is with product inhibition
+# thorn_Uw = (thorn_Kw * thorn_Mxwo) / ((1 + thorn_Mxwo/10)*(1 + thorn_Ws/thorn_Jws)) # this is with product inhibition
+# thorn_Un = (thorn_Kn * thorn_Mxno) / ((1 + thorn_Mxno/10)*(1 + thorn_Ns/thorn_Jns)) # this is with product inhibition
+# thorn_Up = (thorn_Kp * thorn_Mxpo) / ((1 + thorn_Mxpo/10)*(1 + thorn_Ps/thorn_Jps)) # this is with product inhibition
+
+# thorn_Mcs = pmax(0.00001, thorn_Mcs + thorn_Uc ); #12
+# thorn_Mns = pmax(0.00001, thorn_Mns + thorn_Un ); #12
+# thorn_Mps = pmax(0.00001, thorn_Mps + thorn_Up ); #12
+# thorn_Mws = pmax(0.00001, thorn_Mws + thorn_Uw ); 
+
+# thorn_Cs = pmin(1.0, thorn_Mcs/thorn_Mx); #2
+# thorn_Ns = pmin(1.0, thorn_Mns/thorn_Mx); #2
+# thorn_Ps = pmin(1.0, thorn_Mps/thorn_Mx); #2
+# thorn_Ws = pmin(1.0, thorn_Mws/thorn_Mx); #2
+# 
+# thorn_Cs = thorn_Mcs/thorn_Mx; #2
+# thorn_Ns = thorn_Mns/thorn_Mx; #2
+# thorn_Ps = thorn_Mps/thorn_Mx; #2
+# thorn_Ws = thorn_Mws/thorn_Mx; #2
+
+#thorn_G = (thorn_Kg*pmax(0.0,1-thorn_Mxco/10000))*thorn_Mx*thorn_Cs*thorn_Ns*thorn_Ps*thorn_Ws ; #see 13 and 12
+thorn_G = (thorn_Kg)*thorn_Mx*thorn_Cs*thorn_Ns*thorn_Ps*thorn_Ws ; #see 13 and 12
+
+# thorn_Mcs = pmax(0.00001, thorn_Mcs + thorn_Uc - thorn_Fcx * thorn_G); #12
+# thorn_Mns = pmax(0.00001, thorn_Mns + thorn_Un - thorn_Fnx * thorn_G); #12
+# thorn_Mps = pmax(0.00001, thorn_Mps + thorn_Up - thorn_Fpx * thorn_G); #12
+# thorn_Mws = pmax(0.00001, thorn_Mws + thorn_Uw - thorn_Fwx * thorn_G); 
+thorn_Mcs = pmax(0.00001, thorn_Mcs - thorn_Fcx * thorn_G); #12
+thorn_Mns = pmax(0.00001, thorn_Mns - thorn_Fnx * thorn_G); #12
+thorn_Mps = pmax(0.00001, thorn_Mps - thorn_Fpx * thorn_G); #12
+thorn_Mws = pmax(0.00001, thorn_Mws - thorn_Fwx * thorn_G); 
+
+thorn_Mxco = pmax(0.00001, thorn_Mxco + thorn_lambda_co*thorn_G) ;# 13
+thorn_Mxwo = pmax(0.00001, thorn_Mxwo + thorn_lambda_wo*thorn_G) ;# 13
+thorn_Mxno = pmax(0.00001, thorn_Mxno + thorn_lambda_no*thorn_G) ;# 13
+thorn_Mxpo = pmax(0.00001, thorn_Mxpo + thorn_lambda_po*thorn_G) ;# 13
+
+# if(i%%360 >= 180)
+#   {
+#     thorn_Mxco <- pmax(250,thorn_Mxco*scaling_Kc[i])
+#   }
+
+thorn_Mx = thorn_Mxco+thorn_Mxno+thorn_Mxpo+thorn_Mxwo 
+
+thorn_Fxco = thorn_Mxco/thorn_Mx; #4
+thorn_Fxwo = thorn_Mxwo/thorn_Mx; #4
+thorn_Fxno = thorn_Mxno/thorn_Mx; #4
+thorn_Fxpo = thorn_Mxpo/thorn_Mx; #4
+
+thorn_Cs = thorn_Mcs/thorn_Mx # eq 2
+thorn_Ns = thorn_Mns/thorn_Mx # eq 2
+thorn_Ps = thorn_Mps/thorn_Mx # eq 2
+thorn_Ws = thorn_Mws/thorn_Mx # eq 2	
+
+np <- (thorn_Ps*thorn_Mxco + thorn_Fpx*thorn_Mxco)/(thorn_Cs*thorn_Mxco + thorn_Fcx*thorn_Mxco)
+
+M[i,1]<<-thorn_Mxco # this is going into herbivore model as producer density
+M[i,2]<<-thorn_Mxwo
+M[i,3]<<-thorn_Mxno
+M[i,4]<<-thorn_Mxpo
+
+M[i,5]<<-thorn_Fxco
+M[i,6]<<-thorn_Fxwo
+M[i,7]<<-thorn_Fxno
+M[i,8]<<-thorn_Fxpo
+
+M[i,9]<<-thorn_lambda_co
+M[i,10]<<-thorn_lambda_wo
+M[i,11]<<-thorn_lambda_no
+M[i,12]<<-thorn_lambda_po
+
+M[i,13]<<-thorn_Mcs
+M[i,14]<<-thorn_Mws
+M[i,15]<<-thorn_Mns
+M[i,16]<<-thorn_Mps
+
+M[i,17]<<-thorn_Cs
+M[i,18]<<-thorn_Ws
+M[i,19]<<-thorn_Ns
+M[i,20]<<-thorn_Ps
+
+M[i,21]<<-thorn_Cs/thorn_Ns
+M[i,22]<<-thorn_Cs/thorn_Ps
+M[i,23]<<-thorn_Ns/thorn_Ps
+M[i,24]<<-nitrogen_sum
+if(turn_on_herbivores ==1){M[i,25]<<-LV_muller[2,2]}
+M[i,26]<<- (thorn_Ps*thorn_Mxco + thorn_Fpx*thorn_Mxco)/(thorn_Cs*thorn_Mxco + thorn_Fcx*thorn_Mxco) # this is np, the phosphorus to carbon ratio in producer structure
+if(turn_on_herbivores ==1){M[i,27]<<-LV_muller[2,3]}
+M[i,28]<<- thorn_Kc
+M[i,29]<<- thorn_Kw
+M[i,30]<<- thorn_Kn
+M[i,31]<<- thorn_Kp
+
+#if(turn_on_herbivores ==1){print(LV_muller)}
+
+colnames(M)<<-c(
+     "Mxco"
+		,"Mxwo"
+		,"Mxno"
+		,"Mxpo"
+		,"Fxco"
+		,"Fxwo"
+		,"Fxno"
+		,"Fxpo"
+		,"Lambda.co"
+		,"Lambda.wo"
+		,"Lambda.no"
+		,"Lambda.po"
+		,"Mcs"
+		,"Mws"
+		,"Mns"
+		,"Mps"
+		,"Cs"
+		,"Ws"
+		,"Ns"
+		,"Ps"
+		,"C:N"
+		,"C:P"
+		,"N:P"
+		,"nitrogen_sum"
+		,"Xc"
+		,"np"
+		,"rc_consumer_growth"
+		,"thorn_Kc"
+		,"thorn_Kw"
+		,"thorn_Kn"
+		,"thorn_Kp")
+
+}
+}
+
+
+mycol=c("green","blue","purple","red")
+@
+
+
+%\begin{centering}
+<<fig1a, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+
+wrapper_fn_mod(0,0,0) # HERBIVORY OFF, fire off, Thornley allocation
+M1 <<- M
+
+vvv <- seq(1, as.numeric(n.steps), by=1)
+par(mar=c(4,5,3,1))
+matplot(M1[,c(1,25)],type="l",lty=1,col=mycol[1:2],lwd=2,
+        ylab = "Mass (Kg)", xlab= "Time (year)", xaxt="n", main="Thornley alloc, Herbivores off, Fire off", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("right",col=mycol[1:2],lty=1,legend=colnames(M1)[c(1,25)],cex=1.8)
+@
+
+<<fig2a, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M1[,5:8],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F,ylim=c(0,1), xaxt="n", xlab="Year", ylab="Fraction of mass in plant compartments", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topleft",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M1)[5:8],cex=1.8)
+@
+
+<<fig3a, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M1[,9:12],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F,ylim=c(0,1), xaxt="n", xlab="Year", ylab="Allocation to plant compartments", main="Thornley alloc, Herbivores off, Fire off", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topleft",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M1)[9:12],cex=1.8)
+@
+
+<<fig4a, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M1[,13:16],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", xlab="Year", ylab="Substrate massess", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topleft",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M1)[13:16],cex=1.8)
+@
+
+<<fig5a, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M1[,17:20],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", ylab="Substrate concentrations", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M1)[17:20],cex=1.8)
+@
+
+<<fig6a, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M1[,28:31],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", ylab="Substrate uptake rate")
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M1)[28:31],cex=1.8)
+@
+
+<<fig7a, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot((M1[,28:31])/(M1[,17:20]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", ylab="Substrate uptake / subatrate concentrations", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=c("Kc/Cs","Kw/Ws","Kn/Ns","Kp/Ps"),cex=1.8)
+@
+
+% <<echo=FALSE, warning=FALSE>>=
+% tail(M1)
+% @
+
+<<fig1b, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+wrapper_fn_mod(1,0,0) # HERBIVORY ON, fire off, Thornley allocation
+M2 <<- M
+par(mar=c(4,5,3,1))
+matplot(M2[,c(1,25)],type="l",lty=1,col=mycol[1:2],lwd=2,
+        ylab = "Mass (Kg)", xlab= "Time (year)", xaxt="n", main="Thornley alloc, Herbivores on, fire off", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("right",col=mycol[1:2],lty=1,legend=colnames(M2)[c(1,25)],cex=1.8)
+@
+
+<<fig2b, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M2[,5:8],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F,ylim=c(0,1), xaxt="n", xlab="Year", ylab="Fraction of mass in plant compartments HERB", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topleft",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M2)[5:8],cex=1.8)
+@
+
+<<fig3b, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M2[,9:12],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F,ylim=c(0,1), xaxt="n", xlab="Year", ylab="Allocation to plant compartments", main="Thornley alloc, Herbivores on, fire off", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topleft",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M2)[9:12],cex=1.8)
+@
+
+<<fig4b, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M2[,13:16],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", xlab="Year", ylab="Substrate mass HERB", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topleft",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M2)[13:16],cex=1.8)
+@
+
+<<fig5b, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M2[,17:20],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", ylab="Substrate concentrations HERB", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M2)[17:20],cex=1.8)
+@
+
+<<fig6b, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M2[,28:31],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", ylab="Substrate uptake rate HERB", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M2)[28:31],cex=1.8)
+@
+
+<<fig7b, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot((M2[,28:31])/(M2[,17:20]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", ylab="Substrate uptake / subatrate concentrations HERB", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=c("Kc/Cs","Kw/Ws","Kn/Ns","Kp/Ps"),cex=1.8)
+@
+
+<<fig1c, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+wrapper_fn_mod(0,1,0) # HERBIVORY Off, fire on, Thornley allocation
+M3 <<- M
+par(mar=c(4,5,3,1))
+matplot(M3[,c(1,25)],type="l",lty=1,col=mycol[1:2],lwd=2,
+        ylab = "Mass (Kg)", xlab= "Time (year)", xaxt="n", main="Thornley alloc, Herbivores off, Fire on", cex.axis=1.8, cex.lab=1.8, cex.main=1.8, ylim=c(0, 6000))
+abline(v=3*360, lty=2, lwd=2)
+axis(1, at=seq(1, length(vvv), by=360),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("right",col=mycol[1:2],lty=1,legend=colnames(M3)[c(1,25)],cex=1.8)
+@
+
+<<fig2c, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M3[,5:8],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F,ylim=c(0,1), xaxt="n", xlab="Year", ylab="Fraction of mass in plant compartments Fire", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topleft",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M3)[5:8],cex=1.8)
+@
+
+<<fig3c, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M3[,9:12],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F,ylim=c(0,1), xaxt="n", xlab="Year", ylab="Allocation to plant compartments", main="Thornley alloc, Herbivores off, Fire on", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topleft",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M3)[9:12],cex=1.8)
+@
+
+<<fig4c, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M3[,13:16],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", xlab="Year", ylab="Substrate mass Fire", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topleft",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M3)[13:16],cex=1.8)
+@
+
+<<fig5c, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M3[,17:20],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", ylab="Substrate concentrations Fire", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M3)[17:20],cex=1.8)
+@
+
+<<fig6c, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M3[,28:31],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", ylab="Substrate uptake rate Fire", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M3)[28:31],cex=1.8)
+@
+
+<<fig7c, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot((M3[,28:31])/(M3[,17:20]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", ylab="Substrate uptake / subatrate concentrations Fire", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=c("Kc/Cs","Kw/Ws","Kn/Ns","Kp/Ps"),cex=1.8)
+@
+
+
+
+
+%%--------------------------------------------------------------------------------------------------------------------------
+%%--------------------------------------------------------------------------------------------------------------------------
+%%--------------------------------------------------------------------------------------------------------------------------
+%% altered allocation scheme
+<<fig1d, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+
+wrapper_fn_mod(0,0,1) # HERBIVORY OFF, fire off, Thornley allocation off
+M4 <<- M
+
+vvv <- seq(1, as.numeric(n.steps), by=1)
+
+par(mar=c(4,5,3,1))
+matplot(M4[,c(1,25)],type="l",lty=1,col=mycol[1:2],lwd=2,
+        ylab = "Mass (Kg)", xlab= "Time (year)", xaxt="n", main="Revised alloc, Herbivores off, Fire off", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("right",col=mycol[1:2],lty=1,legend=colnames(M4)[c(1,25)],cex=1.8)
+@
+
+<<fig2d, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M4[,5:8],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F,ylim=c(0,1), xaxt="n", xlab="Year", ylab="Fraction of mass in plant compartments", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topleft",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M4)[5:8],cex=1.8)
+@
+
+<<fig3d, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M4[,9:12],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F,ylim=c(0,1), xaxt="n", xlab="Year", ylab="Allocation to plant compartments", main="Revised alloc, Herbivores off, Fire off", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topleft",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M4)[9:12],cex=1.8)
+@
+
+<<fig4d, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M4[,13:16],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", xlab="Year", ylab="Substrate massess", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topleft",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M4)[13:16],cex=1.8)
+@
+
+<<fig5d, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M4[,17:20],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", ylab="Substrate concentrations", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M4)[17:20],cex=1.8)
+@
+
+<<fig6d, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M4[,28:31],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", ylab="Substrate uptake rate")
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M4)[28:31],cex=1.8)
+@
+
+<<fig7d, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot((M4[,28:31])/(M4[,17:20]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", ylab="Substrate uptake / subatrate concentrations", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=c("Kc/Cs","Kw/Ws","Kn/Ns","Kp/Ps"),cex=1.8)
+@
+
+%%--------------------------------------------------------------------------------------------------------------------------
+
+<<fig1e, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+wrapper_fn_mod(1,0,1) # HERBIVORY ON, fire off, Thornley allocation off
+M5 <<- M
+
+par(mar=c(4,5,3,1))
+matplot(M5[,c(1,25)],type="l",lty=1,col=mycol[1:2],lwd=2,
+        ylab = "Mass (Kg)", xlab= "Time (year)", xaxt="n", main="Revised alloc, Herbivores on, fire off", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("right",col=mycol[1:2],lty=1,legend=colnames(M5)[c(1,25)],cex=1.8)
+@
+
+<<fig2e, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M5[,5:8],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F,ylim=c(0,1), xaxt="n", xlab="Year", ylab="Fraction of mass in plant compartments HERB", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topleft",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M5)[5:8],cex=1.8)
+@
+
+<<fig3e, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M5[,9:12],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F,ylim=c(0,1), xaxt="n", xlab="Year", ylab="Allocation to plant compartments", main="Revised alloc, Herbivores on, fire off", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topleft",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M5)[9:12],cex=1.8)
+@
+
+<<fig4e, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M5[,13:16],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", xlab="Year", ylab="Substrate mass HERB", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topleft",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M5)[13:16],cex=1.8)
+@
+
+<<fig5e, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M5[,17:20],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", ylab="Substrate concentrations HERB", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M5)[17:20],cex=1.8)
+@
+
+<<fig6e, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M5[,28:31],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", ylab="Substrate uptake rate HERB", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M5)[28:31],cex=1.8)
+@
+
+<<fig7e, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot((M5[,28:31])/(M5[,17:20]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", ylab="Substrate uptake / subatrate concentrations HERB", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=c("Kc/Cs","Kw/Ws","Kn/Ns","Kp/Ps"),cex=1.8)
+@
+
+%%--------------------------------------------------------------------------------------------------------------------------
+
+<<fig1f, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+wrapper_fn_mod(0,1,1) # HERBIVORY Off, fire on, Thornley allocation off
+M6 <<- M
+
+par(mar=c(4,5,3,1))
+matplot(M6[,c(1,25)],type="l",lty=1,col=mycol[1:2],lwd=2,
+        ylab = "Mass (Kg)", xlab= "Time (year)", xaxt="n", main="Revised alloc, Herbivores off, Fire on", cex.axis=1.8, cex.lab=1.8, cex.main=1.8, ylim=c(0, 6000))
+abline(v=3*360, lty=2, lwd=2)
+axis(1, at=seq(1, length(vvv), by=360),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("right",col=mycol[1:2],lty=1,legend=colnames(M6)[c(1,25)],cex=1.8)
+@
+
+<<fig2f, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M6[,5:8],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F,ylim=c(0,1), xaxt="n", xlab="Year", ylab="Fraction of mass in plant compartments Fire", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topleft",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M6)[5:8],cex=1.8)
+@
+
+<<fig3f, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M6[,9:12],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F,ylim=c(0,1), xaxt="n", xlab="Year", ylab="Allocation to plant compartments", main="Revised alloc, Herbivores off, Fire on", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topleft",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M6)[9:12],cex=1.8)
+@
+
+<<fig4f, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M6[,13:16],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", xlab="Year", ylab="Substrate mass Fire", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topleft",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M6)[13:16],cex=1.8)
+@
+
+<<fig5f, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M6[,17:20],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", ylab="Substrate concentrations Fire", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M6)[17:20],cex=1.8)
+@
+
+<<fig6f, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot(M6[,28:31],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", ylab="Substrate uptake rate Fire", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M6)[28:31],cex=1.8)
+@
+
+<<fig7f, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+par(mar=c(4,5,3,1))
+matplot((M6[,28:31])/(M6[,17:20]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, xaxt="n", ylab="Substrate uptake / subatrate concentrations Fire", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=c("Kc/Cs","Kw/Ws","Kn/Ns","Kp/Ps"),cex=1.8)
+@
+%% end new allocation scheme
+%%--------------------------------------------------------------------------------------------------------------------------
+%%--------------------------------------------------------------------------------------------------------------------------
+%%--------------------------------------------------------------------------------------------------------------------------
+<<figbbc1, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+mycol1=c("green","blue","black","red","darkgrey","yellow")
+par(mar=c(4,5,3,1))
+
+matplot(M1[,c(1)],type="l",lty=1,col=mycol1[1],lwd=2,
+        ylab = "Mass (Kg)", xlab= "Time (year)", xaxt="n", main="Herbivores off, Fire on", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+par(mar=c(4,5,3,1))
+matplot(M4[,c(1)],type="l",lty=2,col=mycol1[2],lwd=2, add=T)
+axis(1, at=seq(1, length(vvv), by=360),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("right",col=mycol1[1:2],lty=1,legend=c("TAM norm","LL NORM"),cex=1.8)
+@
+
+<<figbbc2, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+mycol1=c("green","blue","black","red","darkgrey","yellow")
+
+par(mar=c(4,5,3,1))
+matplot(M2[,c(1)]/M5[,c(1)],type="l",lty=1,col=mycol1[1],lwd=2,
+        ylab = "Ratio TAM/LAM", xlab= "Time (year)", xaxt="n", main="TAM/LAM mass of carbon organ ratio", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+# matplot(M5[,c(1)],type="l",lty=2,col=mycol1[2],lwd=2, add=T)
+axis(1, at=seq(1, length(vvv), by=360),labels=seq(1,length(vvv)/360, by=1), las=1)
+abline(0,1, col="grey", lty=2)
+#legend("right",col=mycol1[1:2],lty=1,legend=c("TAM HERB","LL HERB"),cex=1.8)
+@
+<<figbbc2_herb, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+mycol1=c("green","blue","black","red","darkgrey","yellow")
+
+par(mar=c(4,5,3,1))
+matplot(M2[,c(25)]/M5[,c(25)],type="l",lty=1,col=mycol1[1],lwd=2,
+        ylab = "Ratio TAM/LAM", xlab= "Time (year)", xaxt="n", main="TAM/LAM mass of herbivore ratio", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+# matplot(M5[,c(25)],type="l",lty=2,col=mycol1[2],lwd=2, add=T)
+axis(1, at=seq(1, length(vvv), by=360),labels=seq(1,length(vvv)/360, by=1), las=1)
+abline(0,1, col="grey", lty=2)
+#legend("right",col=mycol1[1:2],lty=1,legend=c("TAM HERB biomass","LL HERB biomass"),cex=1.8)
+@
+
+<<figbbc3, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
+mycol1=c("green","blue","black","red","darkgrey","yellow")
+
+par(mar=c(4,5,3,1))
+matplot(M3[,c(1)],type="l",lty=1,col=mycol1[1],lwd=2,
+        ylab = "Mass (Kg)", xlab= "Time (year)", xaxt="n", main="Herbivores off, Fire on", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
+par(mar=c(4,5,3,1))
+matplot(M6[,c(1)],type="l",lty=2,col=mycol1[2],lwd=2, add=T)
+axis(1, at=seq(1, length(vvv), by=360),labels=seq(1,length(vvv)/360, by=1), las=1)
+legend("right",col=mycol1[1:6],lty=1,legend=c("TAM FIRE","LL FIRE"),cex=1.8)
+@
+
+% <<echo=FALSE, warning=FALSE>>=
+% tail(M2)
+% @
+
+% \begin{figure}[H]
+% \raggedleft
+% \includegraphics[width=7cm, height=4cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig1a-1}
+% \includegraphics[width=7cm, height=4cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig1b-1}
+% \raggedright
+% \includegraphics[width=7cm, height=4cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig1c-1}
+% % \raggedright
+% % \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig2b-1}
+% % \raggedleft
+% % \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig3a-1}
+% % \raggedright
+% % \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig3b-1}
+% \end{figure}
+
+%\newpage
+\section{Exploring TAM allocation behaviour to reductions in pool sizes}
+How plant allocation responds to distrubance is of critical importance if we are to successfully model ecosystems. The example below (Figs. 1 \& 3) shows how plant growth and allocation between different compartments develop through time using Thornley's allocation model. 
+
+What is the expected response of plant allocation to reductions in above ground, photosynthethically active compartments? Caldwell et al. \cite{caldwell_coping_1981} write that, following defoliation, plants commonly curtail root growth in order to re-establish the balance between roots and shoots. McNaughton \cite{mcnaughton_compensatory_1983} mainly talks about overcompensation but also points out that changes in allocation to plant compartments, with increased allocation to leaves, is an important response to herbivory. Oesterheld and McNaughton \cite{oesterheld_effect_1991} state that grass compensatory growth resulted from an increase in above ground relative growth rates and a reduction in below-ground relative growth rates. Hamilton at al. \cite{iii_biomass_1998} found that clipping grass increased N and mineral concentrations above ground and usually resulted in diminished concentrations below-ground. In general then, for grazed grasses, an increase in allocation to above ground structure and decrease in allocation to below ground structures has been observed. A similar allocation strategy might be expected for trees and grasses (provided growing conditions are favourable) in response to fire whereby allocation to above ground compartments is increased until some equilibrium or optimum root:shoot ratio is reached. Similarly, leaf burst in deciduous/annual plants requires a sudden incease in allocation to leaf e.g. Schutz et al. \cite{schutz_juggling_2009}. 
+
+Thornley's allocation model (TAM) \cite{thornley_allocation_2014} was used to simulate vegetation growth. Fig.~\ref{fig:1} shows how grass biomass (Mxco - mass of carbon organ) increases through time. In Fig.~\ref{fig:1} (centre panel) herbivores (Xc - mass of consumers) were turned on which resulted in a reduction in grass biomass (herbivores also comsume substrate mass). In Fig.~\ref{fig:1}(right panel), 75\% of grass biomass is removed as in \cite{thornley_modelling_1998} to simulated the effects of a fire. Fig.~(\ref{fig:3} shows how plant growth is aportioned between plant compartments (co = carbon organ, wo = water organ, no = nitrogen organ, po = phosphorus organ). Fig.~\ref{fig:3} (left panel) shows that these allocation proportions diverge and produce relatively sensible allocation ratios. Fig.~(\ref{fig:3} (centre and right panels) show however that, contrary to the expected respnse of increase allocation to above ground compartments following biomass removal, TAM simulates a decrese in above-ground and increase in below-ground allocation. This response is the result of the following equations: 
+
+<<warning=FALSE>>=
+# thorn_h1 = ( 	thorn_Fxco * (thorn_Kc / thorn_Cs)^thorn_q + 
+# 			        thorn_Fxwo * (thorn_Kw / thorn_Ws)^thorn_q +
+# 			        thorn_Fxno * (thorn_Kn / thorn_Ns)^thorn_q +
+# 			        thorn_Fxpo * (thorn_Kp / thorn_Ps)^thorn_q );
+
+#thorn_lambda_co = thorn_Fxco * (thorn_Kc / thorn_Cs)^thorn_q / thorn_h1; #31
+#thorn_lambda_wo = thorn_Fxwo * (thorn_Kw / thorn_Ws)^thorn_q / thorn_h1; #31
+#thorn_lambda_no = thorn_Fxno * (thorn_Kn / thorn_Ns)^thorn_q / thorn_h1; #31
+#thorn_lambda_po = thorn_Fxpo * (thorn_Kp / thorn_Ps)^thorn_q / thorn_h1; #31
+@
+\noindent whereby $thorn\_Fxco$ (the fraction of plant mass in the carbon organ) is defined as the structural mass of the carbon organ divided by total plant structural mass as:
+
+\begin{equation}
+thorn\_Fxco = \frac{thorn\_Mxco}{thorn\_Mx}. 
+\end{equation}
+
+\noindent Clearly, as above ground mass is removed, the fraction of mass in the above ground compartment is reduced. Additionally, since total plant biomass is reduced, the relative fractions of the other plant compartments increases. This decrease in the fraction of plant mass above ground and increase in the fractions of masses below ground reduce above ground and increase below ground allocation. Further, reduced leaf area reduces carbon uptake (photosynthesis) ($thorn\_Kc$) which further reduces allocation to the above ground compartment. In summary, the response of TAM to herbivory and fire is not consistent with the responses from the ecological literature. Further, when biomass is suddenly removed from the system (irrespective of which compartment, this logic holds for all compartments I believe) the resulting allocation patterns do not maximise growth rates. 
+
+\noindent Revising the allcation equations by removing the structural fraction components as follows:
+<<warning=FALSE>>=
+# thorn_h1 = ( 	1 * (thorn_Kc / thorn_Cs)^thorn_q + 
+# 			        1 * (thorn_Kw / thorn_Ws)^thorn_q +
+# 			        1 * (thorn_Kn / thorn_Ns)^thorn_q +
+# 			        1 * (thorn_Kp / thorn_Ps)^thorn_q );
+
+#thorn_lambda_co = 1 * (thorn_Kc / thorn_Cs)^thorn_q / thorn_h1;
+#thorn_lambda_wo = 1 * (thorn_Kw / thorn_Ws)^thorn_q / thorn_h1;
+#thorn_lambda_no = 1 * (thorn_Kn / thorn_Ns)^thorn_q / thorn_h1;
+#thorn_lambda_po = 1 * (thorn_Kp / thorn_Ps)^thorn_q / thorn_h1;
+@
+produces almost identical leaf biomass growth to Thornley's scheme when biomass accumulation is not disturbed, compare Figs. \ref{fig:1} and \ref{fig:2} (left panels). Allocation to plant compartments is also very similar, Figs. \ref{fig:1} and \ref{fig:3} (left panel). With herbivory turned on, Figs. \ref{fig:1} to \ref{fig:4} (centre panels) and Fig. \ref{fig:5}, both allocation schemes show a similar initial biomass response for both leaf and herbivore. However, allocation to leaf using the Thornley scheme decreases while in the revised scheme allocatoin to leaf increases. The difference in these allocation schemes leads to grass leaf biomass being completely removed followed by herbivore extinction using the Thornley scheme, see Fig. \ref{fig:5}. 
+
+Illustrated in Figs. \ref{fig:1} to \ref{fig:4} (right panels) is the growth and allocation response to fire using these two allocation schemes. Post fire biomass recovery is faster in the revised scheme owing to increased allocation to leaf following fire as opposed to a decrese using Thornley's scheme. Thornley is aware that apporximating fire in this way reduces allocation to leaf, see Fig. 3 in \cite{thornley_modelling_1998}, but does not seem perturbed by this. 
+
+In summary, the revised allocation scheme produces very similar allocation and biomass patterns under undisturbed conditions. When plant growth is distrubed by removal of leaf biomass the new scheme increases allocation to leaf which is in agreement with observed responses (this also applies to any other plant compartmen). Thornley's allocation scheme requires that, should the biomass of any particular plant compartment be entirely removed, growth will never be allocated to it again. Given that we wish to model fire and its effects on vegetation (complete removal of above ground biomass potentially followed by re-sprouting) and herbivory (partial removal of above ground biomass) I would think the revised scheme more appropriate. I am however often wrong. 
+
+
+%\newpage
+\begin{figure}[H]
+\captionsetup{justification=centering}
+\minipage{0.32\textwidth}
+  \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig1a-1}
+\endminipage\hfill
+\minipage{0.32\textwidth}
+  \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig1b-1}
+\endminipage\hfill
+\minipage{0.32\textwidth}
+  \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig1c-1}
+\endminipage
+\noindent \caption{Leaf biomass (Mxco) with Thornley's allocation algorithm: leaf mass through time (left panel), with herbivory on (centre panel), with fire (right panel). Fire was simulated by removing 75\% of leaf biomass in year 4. Xc is herbivore mass.} \label{fig:1}
+\end{figure}
+
+\begin{figure}[H]
+\captionsetup{justification=centering}
+\minipage{0.32\textwidth}
+  \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig1d-1}
+\endminipage\hfill
+\minipage{0.32\textwidth}
+  \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig1e-1}
+\endminipage\hfill
+\minipage{0.32\textwidth}
+  \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig1f-1}
+\endminipage
+\noindent \caption{Leaf biomass (Mxco) with revised allocation algorithm: leaf mass through time (left panel), with herbivory on (centre panel), with fire (right panel). Fire was simulated by removing 75\% of leaf biomass in year 4. Xc is herbivore mass.} \label{fig:2}
+\end{figure}
+
+%\newpage
+\begin{figure}[H]
+\captionsetup{justification=centering}
+\minipage{0.32\textwidth}
+  \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig3a-1}
+\endminipage\hfill
+\minipage{0.32\textwidth}
+  \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig3b-1}
+\endminipage\hfill
+\minipage{0.32\textwidth}
+  \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig3c-1}
+\endminipage
+\noindent \caption{Allocation to plant compartments using Thornley's allocation algorithm: no dsiturbance (left panel), herbivory on (centre panel), fire on (right planel).} \label{fig:3}
+\end{figure}
+
+\begin{figure}[H]
+\captionsetup{justification=centering}
+\minipage{0.32\textwidth}
+  \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig3d-1}
+\endminipage\hfill
+\minipage{0.32\textwidth}
+  \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig3e-1}
+\endminipage\hfill
+\minipage{0.32\textwidth}
+  \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig3f-1}
+\endminipage
+\noindent \caption{Allocation to plant compartments using revised allocation algorithm: no dsiturbance (left panel), herbivory on (centre panel), fire on (right planel).} \label{fig:4}
+\end{figure}
+
+%\begin{figure}[H]
+%\captionsetup{justification=centering}
+%  \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/figbbc1-1}
+%  \caption{TAM allocation - herbivory off, fire off, new alloc}\label{fig:3aaa}
+%\end{figure}
+
+\begin{figure}[H]
+\captionsetup{justification=centering}
+\minipage{0.49\textwidth}
+  \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/figbbc2-1}
+  \endminipage\hfill
+\minipage{0.49\textwidth}
+  \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/figbbc2_herb-1}
+\endminipage
+\noindent \caption{Ratio of grass (left panel) and herbivore (right panel) masses using the two allocation algorithms. The zero in the left panel indicates grass leaf biomass using Thornley allocation is zero (grass extinction). The zero in the right panel indicates herbivore extinction follwing gass extinction  using Thornley allocation.} \label{fig:5}
+\end{figure}
+
+%\begin{figure}[H]
+%\captionsetup{justification=centering}
+%  \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/figbbc3-1}
+%  \caption{TAM allocation - herbivory off, fire off, new alloc}\label{fig:3ggg}
+%\end{figure}
+
+% 
+% \begin{figure}[H]
+% \raggedleft
+% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig1a-1}
+% \raggedright
+% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig1b-1}
+% \raggedleft
+% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig2a-1}
+% \raggedright
+% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig2b-1}
+% \raggedleft
+% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig3a-1}
+% \raggedright
+% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig3b-1}
+% \end{figure}
+% 
+% \begin{figure}[H]
+% \raggedleft
+% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig4a-1}
+% \raggedright
+% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig4b-1}
+% \raggedleft
+% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig5a-1}
+% \raggedright
+% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig5b-1}
+% \raggedleft
+% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig6a-1}
+% \raggedright
+% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig6b-1}
+% \end{figure}
+
+% \begin{figure}[H]
+% \raggedleft
+% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig7a-1}
+% \raggedright
+% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig7b-1}
+% \end{figure}
+
+
+
+
+
+
+
+\printbibliography
+\end{document}
