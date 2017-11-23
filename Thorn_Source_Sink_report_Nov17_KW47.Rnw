@@ -138,9 +138,12 @@ thorn_Mns_wo = thorn_Mns_po_t0;
 thorn_Mps_wo = thorn_Mps_po_t0;
 thorn_Mws_wo = thorn_Mws_po_t0;
 
+# initial total mass of plant 
+# this is now redundant but useful to examine how mass is aportioned.
 thorn_Mx_t0 = thorn_Mxco_t0 + thorn_Mxno_t0 + thorn_Mxpo_t0 + thorn_Mxwo_t0;
 
 ## AUX VARIABLE initial values for concentrations of substrates C,N,P,W
+## for the co, no, po and wo.
 thorn_Cs_co = thorn_Mcs_co_t0/thorn_Mxco;
 thorn_Ns_co = thorn_Mns_co_t0/thorn_Mxco;
 thorn_Ps_co = thorn_Mps_co_t0/thorn_Mxco;
@@ -161,7 +164,9 @@ thorn_Ns_wo = thorn_Mns_wo_t0/thorn_Mxwo;
 thorn_Ps_wo = thorn_Mps_wo_t0/thorn_Mxwo;
 thorn_Ws_wo = thorn_Mws_wo_t0/thorn_Mxwo;
 
-## AUX VARIABLE initial values for fractions of structural dry matter in shoot, root, mycor
+## AUX VARIABLE initial values for fractions of structural dry matter in 
+## the carbon organ, nitrogen organ, phosphorus organ and water organ
+# these are now redundant but useful to examine how mass is aportioned.
 thorn_Fxco = thorn_Mxco_t0/thorn_Mx_t0;
 thorn_Fxwo = thorn_Mxwo_t0/thorn_Mx_t0;
 thorn_Fxno = thorn_Mxno_t0/thorn_Mx_t0;
@@ -173,6 +178,9 @@ thorn_Fxpo = thorn_Mxpo_t0/thorn_Mx_t0;
 n.steps<-360*10
 M<-matrix(0,nrow=n.steps,ncol=71)
 
+# Wrapper to allow the model to be called and run. 
+# variables can be input which define how the model is run.
+# e.g. "uptake" changes the rate of nitrogen uptake. 
 wrapper_fn_mod <- function(uptake)
 {
   ## the for loop
@@ -180,28 +188,26 @@ wrapper_fn_mod <- function(uptake)
     
   uptake_change <- uptake
 
-  base =  0.0002*100; #aDGVM produces numbers around 0.00001 to 0.001 for C_net/plant_mass
+  #aDGVM produces numbers around 0.00001 to 0.001 for C_net/plant_mass
+  base =  0.0002*100; 
   thorn_Kc  = base*1.0;
   thorn_Kw  = 0.015;
-  
-  # if( i >= 180 && i <= 360 ) # this code sets carbon substrate uptake to zero between day 180 & 360
+
+  # this code sets carbon substrate uptake to zero between day X & Y if required
+  # if( i >= 180 && i <= 360 ) 
   # {
   #   thorn_Kc = 0.0;
   # }
   
-  if(uptake_change == 1)
+  if(uptake_change == 1) # low N uptake rate
   {
-    thorn_Kn  = 0.025; # low N uptake rate
-    # thorn_Kn  = 0.05 - pmin(0.001,(i*0.1));
-    # print("Low N")
-    # print(thorn_Kn)
+    thorn_Kn  = 0.025; 
+    # thorn_Kn  = 0.05 - pmin(0.001,(i*0.1)); # decreasing N-uptake through time
   }
   
   if(uptake_change == 0) # high N uptake rate
   {
     thorn_Kn  = 0.25;
-    # print("High N")
-    # print(thorn_Kn)
   }
   
   thorn_Kp  = 0.1;
@@ -269,6 +275,7 @@ wrapper_fn_mod <- function(uptake)
   # Tw_no_to_wo = 0.2*(thorn_Ws_no - thorn_Ws_wo) / (res_no + res_wo) # transport of water substrate from the carbon organ to the phosphorus organ
   # Tw_po_to_wo = 0.2*(thorn_Ws_po - thorn_Ws_wo) / (res_po + res_wo) # transport of water substrate from the carbon organ to the water organ
   ##---------------------------------------------------------------------------------------------
+  
   # print(round(c(thorn_lambda_sh,thorn_lambda_rt,thorn_lambda_my,thorn_lambda_rw),2))
   # print(sum(c(thorn_lambda_sh,thorn_lambda_rt,thorn_lambda_my,thorn_lambda_rw)))
   ## do I need to redefine this for each compartment? yes yes I do... no no I dont
@@ -280,7 +287,7 @@ wrapper_fn_mod <- function(uptake)
   }
   else
   {
-    mass_place_holder = thorn_Mxco; # thid
+    mass_place_holder = thorn_Mxco; # this
   }
   
   thorn_Uc = thorn_Kc * mass_place_holder;
@@ -369,8 +376,8 @@ wrapper_fn_mod <- function(uptake)
   # }
   
   
-  ## make sure thorn_G is the right size. you can get this right through thorn_Kg which is a pure calibration parameter, 
-  ## but also by making sure the substrate cocentrations are reasonable
+  ## thorn_Kg is a calibration parameter. 
+  ## substrate cocentrations affect growth and are modified by uptake inhibition and trasnport
   thorn_G_co = thorn_Kg*thorn_Mxco*thorn_Cs_co*thorn_Ns_co*thorn_Ps_co*thorn_Ws_co ; # see 13 and 12
   thorn_G_no = thorn_Kg*thorn_Mxno*thorn_Cs_no*thorn_Ns_no*thorn_Ps_no*thorn_Ws_no ; # see 13 and 12
   thorn_G_po = thorn_Kg*thorn_Mxpo*thorn_Cs_po*thorn_Ns_po*thorn_Ps_po*thorn_Ws_po ; # see 13 and 12
@@ -388,8 +395,8 @@ wrapper_fn_mod <- function(uptake)
     print(c("thorn_Cs_co", thorn_Cs_co))
     print(c("res_co",res_co))
     print("-----")
-    
   }
+  
   # thorn_Mcs_co = max(0.0001, thorn_Mcs_co - thorn_Fcx * thorn_G_co - Tc_co_to_no - Tc_co_to_po - Tc_co_to_wo);
   # thorn_Mns_co = max(0.0001, thorn_Mns_co - thorn_Fnx * thorn_G_co - Tn_co_to_no - Tn_co_to_po - Tn_co_to_wo);
   # thorn_Mps_co = max(0.0001, thorn_Mps_co - thorn_Fpx * thorn_G_co - Tp_co_to_no - Tp_co_to_po - Tp_co_to_wo);
@@ -435,12 +442,10 @@ wrapper_fn_mod <- function(uptake)
   # thorn_Mps = max(0, thorn_Mps + thorn_Up - thorn_Fpx * thorn_G); # 12
   # thorn_Mws = max(0, thorn_Mws + thorn_Uw - thorn_Fwx * thorn_G); # 12
   
-  thorn_Mxco = max(0.0001, thorn_Mxco + thorn_G_co) ;# 13
-  thorn_Mxno = max(0.0001, thorn_Mxno + thorn_G_no) ;# 13
-  thorn_Mxpo = max(0.0001, thorn_Mxpo + thorn_G_po) ;# 13
-  thorn_Mxwo = max(0.0001, thorn_Mxwo + thorn_G_wo) ;# 13
-  
-  thorn_Mx = thorn_Mxco + thorn_Mxwo + thorn_Mxno + thorn_Mxpo ; #3
+  thorn_Mxco = max(0.0001, thorn_Mxco + thorn_G_co) ;# eq.1 and 2 in Thronley ('98)
+  thorn_Mxno = max(0.0001, thorn_Mxno + thorn_G_no) ;# eq.1 and 2 in Thronley ('98)
+  thorn_Mxpo = max(0.0001, thorn_Mxpo + thorn_G_po) ;# eq.1 and 2 in Thronley ('98)
+  thorn_Mxwo = max(0.0001, thorn_Mxwo + thorn_G_wo) ;# eq.1 and 2 in Thronley ('98)
   
   # this is part of the substrate inhibition code
   # thorn_Uc = (thorn_Kc * thorn_Mxco) / (1 + thorn_Cs/thorn_Jcs)
