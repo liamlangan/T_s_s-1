@@ -377,6 +377,7 @@ wrapper_fn_mod <- function(uptake)
   
   thorn_Mx = thorn_Mxco + thorn_Mxwo + thorn_Mxno + thorn_Mxpo ; #3
   
+  # this is part of the substrate inhibition code
   # thorn_Uc = (thorn_Kc * thorn_Mxco) / (1 + thorn_Cs/thorn_Jcs)
   # thorn_Uw = (thorn_Kw * thorn_Mxwo) / (1 + thorn_Ws/thorn_Jws)
   # thorn_Un = (thorn_Kn * thorn_Mxno) / (1 + thorn_Ns/thorn_Jns)
