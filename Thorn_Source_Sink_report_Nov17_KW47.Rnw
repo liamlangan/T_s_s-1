@@ -190,20 +190,21 @@ thorn_Fxpo = thorn_Mxpo_t0/thorn_Mx_t0;
 
 #R only make a matrix to store the variables for plotting
 #n.steps<-360*10
-n.steps<-360*10 # number of time steps to run model for
+n.steps<-300*1 # number of time steps to run model for
 M<-matrix(0,nrow=n.steps,ncol=71)
 
 # Wrapper to allow the model to be called and run. 
 # variables can be input which define how the model is run.
 # e.g. "uptake" changes the rate of nitrogen uptake. 
-wrapper_fn_mod <- function(uptake)
+wrapper_fn_mod <- function(uptake, fire)
 {
   ## the for loop
   for(i in 1:n.steps) 
     {
     
   uptake_change <- uptake
-
+  fire_on <- fire
+  
   #aDGVM produces numbers around 0.00001 to 0.001 for C_net/plant_mass
   base =  0.0002*100; 
   thorn_Kc  = base*1.0;
@@ -266,28 +267,28 @@ wrapper_fn_mod <- function(uptake)
   thorn_Ws_wo = thorn_Mws_wo/thorn_Mxwo; # only for substrate specific to organ
 
   # use this code to simulate a loss of shoots e.g in fire
-  # if(i == 100)
-  # {
+  if(i == 100 && fire_on ==1)
+  {
       ## 1 gram of co mass left - growth can only happen if structural mass > 0
-  #   thorn_Mxco = 0.0001; 
-  
+    thorn_Mxco = 0.0001;
+
       ## mass of substrates in co set to zero
-  #   thorn_Mcs_co = thorn_Mcs_co*0.0; 
-  #   thorn_Mns_co = thorn_Mns_co*0.0;
-  #   thorn_Mps_co = thorn_Mps_co*0.0;
-  #   thorn_Mws_co = thorn_Mws_co*0.0;
-  #   
+    thorn_Mcs_co = thorn_Mcs_co*0.0;
+    thorn_Mns_co = thorn_Mns_co*0.0;
+    thorn_Mps_co = thorn_Mps_co*0.0;
+    thorn_Mws_co = thorn_Mws_co*0.0;
+
       ## recalculate substrate concentrations for carbon organ
-  #   thorn_Cs_co = thorn_Mcs_co/thorn_Mxco; #2
-  #   thorn_Ns_co = thorn_Mns_co/thorn_Mxco; #2
-  #   thorn_Ps_co = thorn_Mps_co/thorn_Mxco; #2
-  #   thorn_Ws_co = thorn_Mws_co/thorn_Mxco; #2
-  # 
-  #   print("Cs_Co")
-  #   print(thorn_Cs_co)
-  #   print("-----")
-  #   
-  # }
+    thorn_Cs_co = thorn_Mcs_co/thorn_Mxco; #2
+    thorn_Ns_co = thorn_Mns_co/thorn_Mxco; #2
+    thorn_Ps_co = thorn_Mps_co/thorn_Mxco; #2
+    thorn_Ws_co = thorn_Mws_co/thorn_Mxco; #2
+
+    # print("Cs_Co")
+    # print(thorn_Cs_co)
+    # print("-----")
+
+  }
 #######################################################################################
   
   ## thorn_Kg is a calibration parameter. Substrate cocentrations affect growth and are
@@ -298,19 +299,19 @@ wrapper_fn_mod <- function(uptake)
   thorn_G_wo = thorn_Kg*thorn_Mxwo*thorn_Cs_wo*thorn_Ns_wo*thorn_Ps_wo*thorn_Ws_wo ; 
 
   # print growth and carbon substrate concentration for carbon organ following fire
-  if(i == 100 | i==101)
-  {
-    print(i)
-    print("growth")
-    print(c("CO", thorn_G_co))
-    print(c("NO", thorn_G_no))
-    print(c("PO", thorn_G_po))
-    print(c("WO", thorn_G_wo))
-    print("thorn_Cs_co")
-    print(c("thorn_Cs_co", thorn_Cs_co))
-    print(c("res_co",res_co))
-    print("-----")
-  }
+  # if(i == 100 | i==101)
+  # {
+  #   print(i)
+  #   print("growth")
+  #   print(c("CO", thorn_G_co))
+  #   print(c("NO", thorn_G_no))
+  #   print(c("PO", thorn_G_po))
+  #   print(c("WO", thorn_G_wo))
+  #   print("thorn_Cs_co")
+  #   print(c("thorn_Cs_co", thorn_Cs_co))
+  #   print(c("res_co",res_co))
+  #   print("-----")
+  # }
   
   # take growth away from substrate mass for each pool in each organ
   thorn_Mcs_co = max(0.000, thorn_Mcs_co - thorn_Fcx * thorn_G_co );
@@ -651,182 +652,125 @@ colnames(M)<-c(
   ,"Tw_po_to_wo")
 @
 
-% % # <<fig1a, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
-% % # wrapper_fn_mod(0,0,0) # HERBIVORY OFF, fire off, Thornley allocation
-% % # M1 <<- M
-% 
-% vvv <- seq(1, as.numeric(n.steps), by=1)
-% par(mar=c(4,5,3,1))
-% matplot(M1[,c(1,25)],type="l",lty=1,col=mycol[1:2],lwd=2,
-%         ylab = "Mass (Kg)", xlab= "Time (year)", xaxt="n", main="Thornley alloc, Herbivores off, Fire off", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
-% axis(1, at=seq(1, length(vvv), by=360),labels=seq(1,length(vvv)/360, by=1), las=1)
-% legend("right",col=mycol[1:2],lty=1,legend=colnames(M1)[c(1,25)],cex=1.8)
-% @
-% 
-% <<fig2a, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
-% par(mar=c(4,5,3,1))
-% matplot(M1[,5:8],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F,ylim=c(0,1), xaxt="n", xlab="Year", ylab="Fraction of mass in plant compartments", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
-% axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
-% legend("topleft",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M1)[5:8],cex=1.8)
-% @
-% 
-% <<fig3a, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8, include=F>>=
-% par(mar=c(4,5,3,1))
-% matplot(M1[,9:12],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F,ylim=c(0,1), xaxt="n", xlab="Year", ylab="Allocation to plant compartments", main="Thornley alloc, Herbivores off, Fire off", cex.axis=1.8, cex.lab=1.8, cex.main=1.8)
-% axis(1, at=seq(1, length(vvv), by=360*1),labels=seq(1,length(vvv)/360, by=1), las=1)
-% legend("topleft",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M1)[9:12],cex=1.8)
-% @
 
 %\newpage
-\section{Exploring TAM allocation behaviour to reductions in pool sizes}
-How plant allocation responds to distrubance is of critical importance if we are to successfully model ecosystems. The example below (Figs. 1 \& 3) shows how plant growth and allocation between different compartments develop through time using Thornley's allocation model. 
-
-What is the expected response of plant allocation to reductions in above ground, photosynthethically active compartments? Caldwell et al. \cite{caldwell_coping_1981} write that, following defoliation, plants commonly curtail root growth in order to re-establish the balance between roots and shoots. McNaughton \cite{mcnaughton_compensatory_1983} mainly talks about overcompensation but also points out that changes in allocation to plant compartments, with increased allocation to leaves, is an important response to herbivory. Oesterheld and McNaughton \cite{oesterheld_effect_1991} state that grass compensatory growth resulted from an increase in above ground relative growth rates and a reduction in below-ground relative growth rates. Hamilton at al. \cite{iii_biomass_1998} found that clipping grass increased N and mineral concentrations above ground and usually resulted in diminished concentrations below-ground. In general then, for grazed grasses, an increase in allocation to above ground structure and decrease in allocation to below ground structures has been observed. A similar allocation strategy might be expected for trees and grasses (provided growing conditions are favourable) in response to fire whereby allocation to above ground compartments is increased until some equilibrium or optimum root:shoot ratio is reached. Similarly, leaf burst in deciduous/annual plants requires a sudden incease in allocation to leaf e.g. Schutz et al. \cite{schutz_juggling_2009}. 
-
-Thornley's allocation model (TAM) \cite{thornley_allocation_2014} was used to simulate vegetation growth. Fig.~\ref{fig:1} shows how grass biomass (Mxco - mass of carbon organ) increases through time. In Fig.~\ref{fig:1} (centre panel) herbivores (Xc - mass of consumers) were turned on which resulted in a reduction in grass biomass (herbivores also comsume substrate mass). In Fig.~\ref{fig:1}(right panel), 75\% of grass biomass is removed as in \cite{thornley_modelling_1998} to simulated the effects of a fire. Fig.~(\ref{fig:3} shows how plant growth is aportioned between plant compartments (co = carbon organ, wo = water organ, no = nitrogen organ, po = phosphorus organ). Fig.~\ref{fig:3} (left panel) shows that these allocation proportions diverge and produce relatively sensible allocation ratios. Fig.~(\ref{fig:3} (centre and right panels) show however that, contrary to the expected respnse of increase allocation to above ground compartments following biomass removal, TAM simulates a decrese in above-ground and increase in below-ground allocation. This response is the result of the following equations: 
-
-\noindent whereby $thorn\_Fxco$ (the fraction of plant mass in the carbon organ) is defined as the structural mass of the carbon organ divided by total plant structural mass as:
-
-\begin{equation}
-thorn\_Fxco = \frac{thorn\_Mxco}{thorn\_Mx}. 
-\end{equation}
-
-\noindent Clearly, as above ground mass is removed, the fraction of mass in the above ground compartment is reduced. Additionally, since total plant biomass is reduced, the relative fractions of the other plant compartments increases. This decrease in the fraction of plant mass above ground and increase in the fractions of masses below ground reduce above ground and increase below ground allocation. Further, reduced leaf area reduces carbon uptake (photosynthesis) ($thorn\_Kc$) which further reduces allocation to the above ground compartment. In summary, the response of TAM to herbivory and fire is not consistent with the responses from the ecological literature. Further, when biomass is suddenly removed from the system (irrespective of which compartment, this logic holds for all compartments I believe) the resulting allocation patterns do not maximise growth rates. 
-
-\noindent Revising the allcation equations by removing the structural fraction components as follows:
+\section{Source sink model behaviour to reductions in pool sizes}
+Depicted in Figs. 1 & 2 is the modelled behaviour of the new source-sink substrate transport scheme. In an undisturbed system growth is exponential (Fig. 1 A), emergent allocation and plant fractions stabilise (Fig. 1 C,D), growth rates stabilise (Fig. 1 F) and the carbon organ is a source of carbon substrate (Fig. 1 B,E). In contrast, in a disturbed system (Fig 2) where fire has been simulated at time step 100, the system destabilises following fire. The growth rates and fractions of of structural mass in plant compartments are alrered (Fig. 2 C,D). However, following fire the carbon organ switches from beings a carbon source to a carbon sink (Fig. 2 B,E) and draws substrate from the other substrate pools. This substrate induces increased relative growth in the carbon organ while inducing lower growth in the other plant compartments (Fig. 2 F). The rapid regrowth following fire halts transport of carbon substrate to other compartments (Fig. 2 B,E) which halts growth in these compartments owing to lack of carbon substrate (Fig. 2 C, F). Growth in other compartments recommences when the carbon substrate concentration in the carbon is not entirely consumed by it's own growth due to lack of other substrates and growth stabilises again (Fig. 2 F).   
 
 
-produces almost identical leaf biomass growth to Thornley's scheme when biomass accumulation is not disturbed, compare Figs. \ref{fig:1} and \ref{fig:2} (left panels). Allocation to plant compartments is also very similar, Figs. \ref{fig:1} and \ref{fig:3} (left panel). With herbivory turned on, Figs. \ref{fig:1} to \ref{fig:4} (centre panels) and Fig. \ref{fig:5}, both allocation schemes show a similar initial biomass response for both leaf and herbivore. However, allocation to leaf using the Thornley scheme decreases while in the revised scheme allocatoin to leaf increases. The difference in these allocation schemes leads to grass leaf biomass being completely removed followed by herbivore extinction using the Thornley scheme, see Fig. \ref{fig:5}. 
+\begin{centering}
+<<fig1, echo=FALSE, warning=FALSE, fig.width=8, fig.height=6, fig.cap=c('Source sink dynamics with high N uptake and no fire. (A) The structural mass of plant compartments. (B) Indicates whether the carbon organ is a carbon source or carbon sink. 1 indicated a carbon source. -1 indicates a carbon sink. 0 indicates no substrate transport. (C) Emergent allocation depicted as the growth for each compartment divided by the total plant growth. (D) The fraction of plant mass in plant compartments. (E) The transfer amount of carbon substrate between compartments. (F) The relative growth rates of compartments calculated as ((biomass(day t+1) - biomass(day t))/biomass(day t)*100.', fig.pos='H')>>=
+wrapper_fn_mod(0,0) # 
+M2 <<- M
 
-Illustrated in Figs. \ref{fig:1} to \ref{fig:4} (right panels) is the growth and allocation response to fire using these two allocation schemes. Post fire biomass recovery is faster in the revised scheme owing to increased allocation to leaf following fire as opposed to a decrese using Thornley's scheme. Thornley is aware that apporximating fire in this way reduces allocation to leaf, see Fig. 3 in \cite{thornley_modelling_1998}, but does not seem perturbed by this. 
+par(mfcol=c(2,3))
 
-In summary, the revised allocation scheme produces very similar allocation and biomass patterns under undisturbed conditions. When plant growth is distrubed by removal of leaf biomass the new scheme increases allocation to leaf which is in agreement with observed responses (this also applies to any other plant compartmen). Thornley's allocation scheme requires that, should the biomass of any particular plant compartment be entirely removed, growth will never be allocated to it again. Given that we wish to model fire and its effects on vegetation (complete removal of above ground biomass potentially followed by re-sprouting) and herbivory (partial removal of above ground biomass) I would think the revised scheme more appropriate. I am however often wrong. 
+matplot((M2[,1:4]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2, ylab="Structural mass")
+text(10, max(M2[,1:4])*0.95, "(A)", cex=1.2)
+legend("top",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M2)[c(1:4)],cex=1.0)
 
+matplot(M2[,5:8],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, ylim=c(0,1), ylab="Proportion of structural mass in plant compartments)")
+text(10, 0.95, "(D)", cex=1.2)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M2)[5:8],cex=1.0)
 
-%\newpage
-% \begin{figure}[H]
-% \captionsetup{justification=centering}
-% \minipage{0.32\textwidth}
-%   \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig1a-1}
-% \endminipage\hfill
-% \minipage{0.32\textwidth}
-%   \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig1b-1}
-% \endminipage\hfill
-% \minipage{0.32\textwidth}
-%   \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig1c-1}
-% \endminipage
-% \noindent \caption{Leaf biomass (Mxco) with Thornley's allocation algorithm: leaf mass through time (left panel), with herbivory on (centre panel), with fire (right panel). Fire was simulated by removing 75\% of leaf biomass in year 4. Xc is herbivore mass.} \label{fig:1}
-% \end{figure}
+Mr.poo <- M2[,48:50]
+Mr.poo[(Mr.poo[] > 0)] <- 1
+Mr.poo[(Mr.poo[] < 0)] <- -1
+matplot((Mr.poo[,1:3]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F, ylab="Carbon organ source or sink", ylim=c(-1.01, 1.01))
+text(10, max(Mr.poo[,1:3])*0.90, "(B)", cex=1.2)
+abline(h=0, lty=2, lwd=0.5)
+legend("bottomright",legend=c(" 1 = c-source","-1 = c-sink"," 0 = no transfer"),cex=1.0)
 
-% \begin{figure}[H]
-% \captionsetup{justification=centering}
-% \minipage{0.32\textwidth}
-%   \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig1d-1}
-% \endminipage\hfill
-% \minipage{0.32\textwidth}
-%   \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig1e-1}
-% \endminipage\hfill
-% \minipage{0.32\textwidth}
-%   \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig1f-1}
-% \endminipage
-% \noindent \caption{Leaf biomass (Mxco) with revised allocation algorithm: leaf mass through time (left panel), with herbivory on (centre panel), with fire (right panel). Fire was simulated by removing 75\% of leaf biomass in year 4. Xc is herbivore mass.} \label{fig:2}
-% \end{figure}
-% 
-% %\newpage
-% \begin{figure}[H]
-% \captionsetup{justification=centering}
-% \minipage{0.32\textwidth}
-%   \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig3a-1}
-% \endminipage\hfill
-% \minipage{0.32\textwidth}
-%   \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig3b-1}
-% \endminipage\hfill
-% \minipage{0.32\textwidth}
-%   \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig3c-1}
-% \endminipage
-% \noindent \caption{Allocation to plant compartments using Thornley's allocation algorithm: no dsiturbance (left panel), herbivory on (centre panel), fire on (right planel).} \label{fig:3}
-% \end{figure}
-% 
-% \begin{figure}[H]
-% \captionsetup{justification=centering}
-% \minipage{0.32\textwidth}
-%   \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig3d-1}
-% \endminipage\hfill
-% \minipage{0.32\textwidth}
-%   \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig3e-1}
-% \endminipage\hfill
-% \minipage{0.32\textwidth}
-%   \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig3f-1}
-% \endminipage
-% \noindent \caption{Allocation to plant compartments using revised allocation algorithm: no dsiturbance (left panel), herbivory on (centre panel), fire on (right planel).} \label{fig:4}
-% \end{figure}
+matplot((M2[,48:50]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F, ylab="Carbon organ transfer of substrate")
+text(10, max(M2[,48:50])*0.95, "(E)", cex=1.2)
+abline(h=0, lty=2, lwd=0.5)
+legend("top",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M2)[c(48:50)],cex=1.0)
 
-%\begin{figure}[H]
-%\captionsetup{justification=centering}
-%  \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/figbbc1-1}
-%  \caption{TAM allocation - herbivory off, fire off, new alloc}\label{fig:3aaa}
-%\end{figure}
-
-% \begin{figure}[H]
-% \captionsetup{justification=centering}
-% \minipage{0.49\textwidth}
-%   \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/figbbc2-1}
-%   \endminipage\hfill
-% \minipage{0.49\textwidth}
-%   \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/figbbc2_herb-1}
-% \endminipage
-% \noindent \caption{Ratio of grass (left panel) and herbivore (right panel) masses using the two allocation algorithms. The zero in the left panel indicates grass leaf biomass using Thornley allocation is zero (grass extinction). The zero in the right panel indicates herbivore extinction follwing gass extinction  using Thornley allocation.} \label{fig:5}
-% \end{figure}
-
-%\begin{figure}[H]
-%\captionsetup{justification=centering}
-%  \includegraphics[width=\linewidth]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/figbbc3-1}
-%  \caption{TAM allocation - herbivory off, fire off, new alloc}\label{fig:3ggg}
-%\end{figure}
-
-% 
-% \begin{figure}[H]
-% \raggedleft
-% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig1a-1}
-% \raggedright
-% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig1b-1}
-% \raggedleft
-% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig2a-1}
-% \raggedright
-% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig2b-1}
-% \raggedleft
-% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig3a-1}
-% \raggedright
-% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig3b-1}
-% \end{figure}
-% 
-% \begin{figure}[H]
-% \raggedleft
-% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig4a-1}
-% \raggedright
-% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig4b-1}
-% \raggedleft
-% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig5a-1}
-% \raggedright
-% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig5b-1}
-% \raggedleft
-% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig6a-1}
-% \raggedright
-% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig6b-1}
-% \end{figure}
-
-% \begin{figure}[H]
-% \raggedleft
-% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig7a-1}
-% \raggedright
-% \includegraphics[width=7cm, height=7cm]{/Users/laughoutlouder/Documents/Thorn_soil/TAM_HERBIVORES/figure/fig7b-1}
-% \end{figure}
+# matplot((M2[,38:41]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F)
+# legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M2)[c(38:41)],cex=1.0)
+gg_co1 <- M2[-1,1]
+gg_co2 <- M2[-dim(M2)[1],1]
+gg_wo1 <- M2[-1,2]
+gg_wo2 <- M2[-dim(M2)[1],2]
+gg_no1 <- M2[-1,3]
+gg_no2 <- M2[-dim(M2)[1],3]
+gg_po1 <- M2[-1,4]
+gg_po2 <- M2[-dim(M2)[1],4]
 
 
+matplot(M2[,44]/(M2[,44]+M2[,45]+M2[,46]+M2[,47]),type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(0,1), ylab="Emergent allocation")
+text(10, 0.9, "(C)", cex=1.2)
+matplot(M2[,47]/(M2[,44]+M2[,45]+M2[,46]+M2[,47]),type="l",lty=c(rep(1)),col=mycol[2],lwd=2,add=T, ylim=c(0,1))
+matplot(M2[,45]/(M2[,44]+M2[,45]+M2[,46]+M2[,47]),type="l",lty=c(rep(1)),col=mycol[3],lwd=2,add=T, ylim=c(0,1))
+matplot(M2[,46]/(M2[,44]+M2[,45]+M2[,46]+M2[,47]),type="l",lty=c(rep(1)),col=mycol[4],lwd=2,add=T, ylim=c(0,1))
+legend("topright",col=mycol[1:4],lty=c(rep(1)),legend=c("Alloc CO","Alloc WO","Alloc NO","Alloc PO"),cex=1.0)
+
+matplot(((gg_co1-gg_co2)/gg_co2)*100,type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(min(((gg_co1-gg_co2)/gg_co2)*100),max(((gg_co1-gg_co2)/gg_co2)*100)), ylab="Growth rates % day^-1")
+text(10, max(((gg_co1-gg_co2)/gg_co2)*100)*0.9, "(F)", cex=1.2)
+matplot(((gg_wo1-gg_wo2)/gg_wo2)*100,type="l",lty=c(rep(1)),col=mycol[2],lwd=2,add=T, ylim=c(-10,10))
+matplot(((gg_no1-gg_no2)/gg_no2)*100,type="l",lty=c(rep(1)),col=mycol[3],lwd=2,add=T, ylim=c(-10,10))
+matplot(((gg_po1-gg_po2)/gg_po2)*100,type="l",lty=c(rep(1)),col=mycol[4],lwd=2,add=T, ylim=c(-10,10))
+legend("bottomright",col=mycol[1:4],lty=c(rep(1)),legend=c("Growth CO","Growth WO","Growth NO","Growth PO"),cex=1.0)
+@
+\end{centering}
+
+\begin{centering}
+<<fig2, echo=FALSE, warning=FALSE, fig.width=8, fig.height=6, fig.cap=c('Source sink dynamics with high N uptake and fire. (A) The structural mass of plant compartments. (B) Indicates whether the carbon organ is a carbon source or carbon sink. 1 indicated a carbon source. -1 indicates a carbon sink. 0 indicates no substrate transport. (C) Emergent allocation depicted as the growth for each compartment divided by the total plant growth. (D) The fraction of plant mass in plant compartments. (E) The transfer amount of carbon substrate between compartments. (F) The relative growth rates of compartments calculated as ((biomass(day t+1) - biomass(day t))/biomass(day t)*100.'), fig.pos='H'>>=
+wrapper_fn_mod(0,1) # 
+M1 <<- M
+
+par(mfcol=c(2,3))
+
+matplot((M1[,1:4]),type="l",lty=c(rep(1,4)),col=mycol,lwd=2, ylab="Structural mass")
+text(10, max(M1[,1:4])*0.95, "(A)", cex=1.2)
+legend("top",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M1)[c(1:4)],cex=1.0)
+
+matplot(M1[,5:8],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, ylim=c(0,1), ylab="Proportion of structural mass in plant compartments)")
+text(10, 0.95, "(D)", cex=1.2)
+legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M1)[5:8],cex=1.0)
+
+Mr.poo <- M1[,48:50]
+Mr.poo[(Mr.poo[] > 0)] <- 1
+Mr.poo[(Mr.poo[] < 0)] <- -1
+matplot((Mr.poo[,1:3]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F, ylab="Carbon organ source or sink", ylim=c(-1.01, 1.01))
+text(10, max(Mr.poo[,1:3])*0.90, "(B)", cex=1.2)
+abline(h=0, lty=2, lwd=0.5)
+legend("bottomright",legend=c("1 = c-source","-1 = c-sink","0 = no c transfer"),cex=1.0)
+
+matplot((M1[,48:50]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F, ylab="Carbon organ transfer of substrate")
+text(10, max(M1[,48:50])*0.95, "(E)", cex=1.2)
+abline(h=0, lty=2, lwd=0.5)
+legend("top",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M1)[c(48:50)],cex=1.0)
+
+# matplot((M1[,38:41]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F)
+# legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M1)[c(38:41)],cex=1.0)
+gg_co1 <- M1[-1,1]
+gg_co2 <- M1[-dim(M1)[1],1]
+gg_wo1 <- M1[-1,2]
+gg_wo2 <- M1[-dim(M1)[1],2]
+gg_no1 <- M1[-1,3]
+gg_no2 <- M1[-dim(M1)[1],3]
+gg_po1 <- M1[-1,4]
+gg_po2 <- M1[-dim(M1)[1],4]
 
 
+matplot(M1[,44]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(0,1), ylab="Emergent allocation")
+text(10, max(M1[,44]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]))*0.95, "(C)", cex=1.2)
+matplot(M1[,47]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(1)),col=mycol[2],lwd=2,add=T, ylim=c(0,1))
+matplot(M1[,45]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(1)),col=mycol[3],lwd=2,add=T, ylim=c(0,1))
+matplot(M1[,46]/(M1[,44]+M1[,45]+M1[,46]+M1[,47]),type="l",lty=c(rep(1)),col=mycol[4],lwd=2,add=T, ylim=c(0,1))
+legend("topright",col=mycol[1:4],lty=c(rep(1)),legend=c("Alloc CO","Alloc WO","Alloc NO","Alloc PO"),cex=1.0)
+
+matplot(((gg_co1-gg_co2)/gg_co2)*100,type="l",lty=c(rep(1)),col=mycol[1],lwd=2,add=F, ylim=c(-10,30), ylab="Growth rates % day^-1")
+text(10, max(((gg_co1-gg_co2)/gg_co2)*100)*0.9, "(F)", cex=1.2)
+matplot(((gg_wo1-gg_wo2)/gg_wo2)*100,type="l",lty=c(rep(1)),col=mycol[2],lwd=2,add=T, ylim=c(-10,10))
+matplot(((gg_no1-gg_no2)/gg_no2)*100,type="l",lty=c(rep(1)),col=mycol[3],lwd=2,add=T, ylim=c(-10,10))
+matplot(((gg_po1-gg_po2)/gg_po2)*100,type="l",lty=c(rep(1)),col=mycol[4],lwd=2,add=T, ylim=c(-10,10))
+legend("bottomright",col=mycol[1:4],lty=c(rep(1)),legend=c("Growth CO","Growth WO","Growth NO","Growth PO"),cex=1.0)
+@
+\end{centering}
 
 
-
+\newpage
 \printbibliography
 \end{document}
