@@ -25,11 +25,19 @@ Sys.setenv(TEXINPUTS=getwd(),
 library(knitr);library(deSolve); library(lattice)
 mycol=c("green","blue","purple","red")
 @
+\section{Introduction}
+In my previous report I highlighted deficiencies with the Thonley allocation model \cite{thornley_allocation_2014}. To briefly revisit these they were:
+\begin{itemize}
+\item that the response of plant allocation to removal of above ground mass was not consistent with observed responses \cite{caldwell_coping_1981,mcnaughton_compensatory_1983,oesterheld_effect_1991,iii_biomass_1998,schutz_juggling_2009}.
+\item Allocation to above grownd growth is reduced via decreases in the relative mass of the the above ground compartment. 
+\end{itemize}
 
-\section{Thornley source sink}
+
+\section{Thornley source sink}\label{TSS}
 The following code is an implimentation of Thornley's (1998) paper \cite{thornley_modelling_1998}. 
 
 
+\section(Source sink model code)\label{ss_code}
 <<>>=
 ######################################################################################
 # R version of Thornley allcoation model (TAM) as in Thornley and Parsons 2014. - 
@@ -43,6 +51,10 @@ The following code is an implimentation of Thornley's (1998) paper \cite{thornle
 # This version with carbon organ, nitrogen organ, phosphorus organ and water organ. 
 # This version includes separate substrate pools for each organ and allows 
 # bi-directional transport of substrates betweens organs. 
+
+# The code for the .Rnw file, the original .Rnw file, the associated bibfile and
+# and the R-script I used to develop this model version can be found at:
+# https://github.com/liamlangan/Thornley_source_sink.git
 ######################################################################################
 
 ## initial values for mass of structural dry matter in carbon organ (co), 
