@@ -140,7 +140,7 @@ thorn_Fxpo = thorn_Mxpo_t0/thorn_Mx_t0;
 
 #R only make a matrix to store the variables for plotting
 #n.steps<-360*10
-n.steps<-400
+n.steps<-2000
 # n.steps<-3*10
 M<-matrix(0,nrow=n.steps,ncol=71)
 
@@ -808,7 +808,7 @@ Mr.poo[(Mr.poo[] > 0)] <- 1
 Mr.poo[(Mr.poo[] < 0)] <- -1
 matplot((Mr.poo[,1:3]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F, ylab="Carbon organ transfer of substrate", ylim=c(-1.01, 1.01))
 abline(h=0, lty=2, lwd=0.5)
-legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M1)[c(48:50)],cex=1.0)
+legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M)[c(48:50)],cex=1.0)
 
 matplot((M[,48:50]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F, ylab="Carbon organ transfer of substrate")
 abline(h=0, lty=2, lwd=0.5)
