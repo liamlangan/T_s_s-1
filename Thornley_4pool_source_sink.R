@@ -5,7 +5,7 @@
 # This version with carbon organ, nitrogen organ, phosphorus organ and water organ 
 ###############################################################################
 
-## LL NOTE for OSX users:
+## LL: NOTE for OSX users:
 ## running "ssh-add ~/.ssh/id_rsa" in the terminal allows RStudio Github communication via the ssh passkey
 ## 
 
@@ -47,29 +47,13 @@ thorn_Mns_wo_t0 = 0.01/size.factor*0.25;
 thorn_Mps_wo_t0 = 0.005/size.factor*0.25;
 thorn_Mws_wo_t0 = 0.25/size.factor*0.25;
 
-## upktake rates of C,N,P
-
+## upktake rates of C,N,P,W
 #default to go back to
 base =  0.0002*100; #aDGVM produces numbers around 0.00001 to 0.001 for C_net/plant_mass
 thorn_Kc  = base*1.0;
 thorn_Kw  = 0.0015;
 thorn_Kn  = 0.25;
 thorn_Kp  = 0.1;
-# thorn_Kw  = base*0.0015;
-# thorn_Kn  = base*0.25;
-# thorn_Kp  = base*0.1;
-
-#fiddle with these ones
-#genernally varying these K by factors of 10% to 200% is probably what we want to do to represent
-#limitation/abundance of carbon, water, N, P.
-#play with these to convince yourself that allocation responds as you would expect to variation in uptake parameters
-#I think its possible to get the model to produce reasonable C:N and N:P ratios
-
-#base =  0.0002*100; #TTR numbers around 0.00001 to 0.001
-#thorn_Kc  = base*1.0; #TTR numbers around 0.00001 to 0.001
-#thorn_Kw  = base*0.00015;
-#thorn_Kn  = base*0.25;
-#thorn_Kp  = base*0.1;
 
 #product inhibittion, not used
 #thorn_Jcs = 0.03;
@@ -156,7 +140,8 @@ thorn_Fxpo = thorn_Mxpo_t0/thorn_Mx_t0;
 
 #R only make a matrix to store the variables for plotting
 #n.steps<-360*10
-n.steps<-200
+n.steps<-400
+# n.steps<-3*10
 M<-matrix(0,nrow=n.steps,ncol=71)
 
 wrapper_fn_mod <- function(uptake)
@@ -170,19 +155,24 @@ wrapper_fn_mod <- function(uptake)
   thorn_Kc  = base*1.0;
   thorn_Kw  = 0.015;
   
+  # if( i >= 180 && i <= 360 ) # this code sets carbon substrate uptake to zero between day 180 & 360
+  # {
+  #   thorn_Kc = 0.0;
+  # }
+  
   if(uptake_change == 1)
   {
     thorn_Kn  = 0.025; # low N uptake rate
     # thorn_Kn  = 0.05 - pmin(0.001,(i*0.1));
-    print("Low N")
-    print(thorn_Kn)
+    # print("Low N")
+    # print(thorn_Kn)
   }
   
   if(uptake_change == 0) # high N uptake rate
   {
     thorn_Kn  = 0.25;
-    print("High N")
-    print(thorn_Kn)
+    # print("High N")
+    # print(thorn_Kn)
   }
   
   thorn_Kp  = 0.1;
@@ -253,30 +243,41 @@ wrapper_fn_mod <- function(uptake)
   # print(round(c(thorn_lambda_sh,thorn_lambda_rt,thorn_lambda_my,thorn_lambda_rw),2))
   # print(sum(c(thorn_lambda_sh,thorn_lambda_rt,thorn_lambda_my,thorn_lambda_rw)))
   ## do I need to redefine this for each compartment? yes yes I do... no no I dont
-  thorn_Uc = thorn_Kc * thorn_Mxco;
+
+  if(thorn_Mxco <= 0.0001)
+  {
+    # Here I am assuming that a leaf of mass less than 0.2 grammes cannot do photosynthesis.
+    mass_place_holder = 0.0; # this is to test the difference between uni and bi directional transport.
+  }
+  else
+  {
+    mass_place_holder = thorn_Mxco; # thid
+  }
+  
+  thorn_Uc = thorn_Kc * mass_place_holder;
   thorn_Un = thorn_Kn * thorn_Mxno;
   thorn_Up = thorn_Kp * thorn_Mxpo;
   thorn_Uw = thorn_Kw * thorn_Mxwo;
   
-  thorn_Mcs_co = max(0.0001, thorn_Mcs_co + thorn_Uc);
+  thorn_Mcs_co = max(0.000, thorn_Mcs_co + thorn_Uc);
   # # thorn_Mns_co = max(0.0001, thorn_Mns_co - thorn_Fnx * thorn_G_co );
   # # thorn_Mps_co = max(0.0001, thorn_Mps_co - thorn_Fpx * thorn_G_co );
   # # thorn_Mws_co = max(0.0001, thorn_Mws_co - thorn_Fwx * thorn_G_co );
   #
   # # thorn_Mcs_no = max(0.0001, thorn_Mcs_no - thorn_Fcx * thorn_G_no );
-  thorn_Mns_no = max(0.0001, thorn_Mns_no + thorn_Un );
+  thorn_Mns_no = max(0.000, thorn_Mns_no + thorn_Un );
   # # thorn_Mps_no = max(0.0001, thorn_Mps_no - thorn_Fpx * thorn_G_no );
   # # thorn_Mws_no = max(0.0001, thorn_Mws_no - thorn_Fwx * thorn_G_no );
   #
   # # thorn_Mcs_po = max(0.0001, thorn_Mcs_po - thorn_Fcx * thorn_G_po );
   # # thorn_Mns_po = max(0.0001, thorn_Mns_po - thorn_Fnx * thorn_G_po );
-  thorn_Mps_po = max(0.0001, thorn_Mps_po + thorn_Up );
+  thorn_Mps_po = max(0.000, thorn_Mps_po + thorn_Up );
   # # thorn_Mws_po = max(0.0001, thorn_Mws_po - thorn_Fwx * thorn_G_po );
   #
   # # thorn_Mcs_wo = max(0.0001, thorn_Mcs_wo - thorn_Fcx * thorn_G_wo );
   # # thorn_Mns_wo = max(0.0001, thorn_Mns_wo - thorn_Fnx * thorn_G_wo );
   # # thorn_Mps_wo = max(0.0001, thorn_Mps_wo - thorn_Fpx * thorn_G_wo );
-  thorn_Mws_wo = max(0.0001, thorn_Mws_wo + thorn_Uw );
+  thorn_Mws_wo = max(0.000, thorn_Mws_wo + thorn_Uw );
 
   # thorn_Mcs_co = max(0.0001, thorn_Mcs_co + thorn_Uc - thorn_Fcx * thorn_G_co - Tc_co_to_no - Tc_co_to_po - Tc_co_to_wo);
   # thorn_Mns_co = max(0.0001, thorn_Mns_co - thorn_Fnx * thorn_G_co - Tn_co_to_no - Tn_co_to_po - Tn_co_to_wo);
@@ -318,6 +319,27 @@ wrapper_fn_mod <- function(uptake)
   thorn_Ps_wo = thorn_Mps_wo/thorn_Mxwo; #2
   thorn_Ws_wo = thorn_Mws_wo/thorn_Mxwo; #2
   
+  #  use this code to simulate a loss in shoots e.g in fire
+  # if(i == 100)
+  # {
+  #   thorn_Mxco = 0.0001;
+  #   thorn_Mcs_co = thorn_Mcs_co*0.0;
+  #   thorn_Mns_co = thorn_Mns_co*0.0;
+  #   thorn_Mps_co = thorn_Mps_co*0.0;
+  #   thorn_Mws_co = thorn_Mws_co*0.0;
+  #   
+  #   thorn_Cs_co = thorn_Mcs_co/thorn_Mxco; #2
+  #   thorn_Ns_co = thorn_Mns_co/thorn_Mxco; #2
+  #   thorn_Ps_co = thorn_Mps_co/thorn_Mxco; #2
+  #   thorn_Ws_co = thorn_Mws_co/thorn_Mxco; #2
+  # 
+  #   print("Cs_Co")
+  #   print(thorn_Cs_co)
+  #   print("-----")
+  #   
+  # }
+  
+  
   ## make sure thorn_G is the right size. you can get this right through thorn_Kg which is a pure calibration parameter, 
   ## but also by making sure the substrate cocentrations are reasonable
   thorn_G_co = thorn_Kg*thorn_Mxco*thorn_Cs_co*thorn_Ns_co*thorn_Ps_co*thorn_Ws_co ; # see 13 and 12
@@ -325,6 +347,20 @@ wrapper_fn_mod <- function(uptake)
   thorn_G_po = thorn_Kg*thorn_Mxpo*thorn_Cs_po*thorn_Ns_po*thorn_Ps_po*thorn_Ws_po ; # see 13 and 12
   thorn_G_wo = thorn_Kg*thorn_Mxwo*thorn_Cs_wo*thorn_Ns_wo*thorn_Ps_wo*thorn_Ws_wo ; # see 13 and 12
 
+  if(i == 100 | i==101)
+  {
+    print(i)
+    print("growth")
+    print(c("CO", thorn_G_co))
+    print(c("NO", thorn_G_no))
+    print(c("PO", thorn_G_po))
+    print(c("WO", thorn_G_wo))
+    print("thorn_Cs_co")
+    print(c("thorn_Cs_co", thorn_Cs_co))
+    print(c("res_co",res_co))
+    print("-----")
+    
+  }
   # thorn_Mcs_co = max(0.0001, thorn_Mcs_co - thorn_Fcx * thorn_G_co - Tc_co_to_no - Tc_co_to_po - Tc_co_to_wo);
   # thorn_Mns_co = max(0.0001, thorn_Mns_co - thorn_Fnx * thorn_G_co - Tn_co_to_no - Tn_co_to_po - Tn_co_to_wo);
   # thorn_Mps_co = max(0.0001, thorn_Mps_co - thorn_Fpx * thorn_G_co - Tp_co_to_no - Tp_co_to_po - Tp_co_to_wo);
@@ -345,25 +381,25 @@ wrapper_fn_mod <- function(uptake)
   # thorn_Mps_wo = max(0.0001, thorn_Mps_wo - thorn_Fpx * thorn_G_wo + Tp_co_to_wo + Tp_no_to_wo + Tp_po_to_wo);
   # thorn_Mws_wo = max(0.0001, thorn_Mws_wo - thorn_Fwx * thorn_G_wo + Tw_co_to_wo + Tw_no_to_wo + Tw_po_to_wo);
 
-  thorn_Mcs_co = max(0.0001, thorn_Mcs_co - thorn_Fcx * thorn_G_co );
-  thorn_Mns_co = max(0.0001, thorn_Mns_co - thorn_Fnx * thorn_G_co );
-  thorn_Mps_co = max(0.0001, thorn_Mps_co - thorn_Fpx * thorn_G_co );
-  thorn_Mws_co = max(0.0001, thorn_Mws_co - thorn_Fwx * thorn_G_co );
+  thorn_Mcs_co = max(0.000, thorn_Mcs_co - thorn_Fcx * thorn_G_co );
+  thorn_Mns_co = max(0.000, thorn_Mns_co - thorn_Fnx * thorn_G_co );
+  thorn_Mps_co = max(0.000, thorn_Mps_co - thorn_Fpx * thorn_G_co );
+  thorn_Mws_co = max(0.000, thorn_Mws_co - thorn_Fwx * thorn_G_co );
   
-  thorn_Mcs_no = max(0.0001, thorn_Mcs_no - thorn_Fcx * thorn_G_no );
-  thorn_Mns_no = max(0.0001, thorn_Mns_no - thorn_Fnx * thorn_G_no );
-  thorn_Mps_no = max(0.0001, thorn_Mps_no - thorn_Fpx * thorn_G_no );
-  thorn_Mws_no = max(0.0001, thorn_Mws_no - thorn_Fwx * thorn_G_no );
+  thorn_Mcs_no = max(0.000, thorn_Mcs_no - thorn_Fcx * thorn_G_no );
+  thorn_Mns_no = max(0.000, thorn_Mns_no - thorn_Fnx * thorn_G_no );
+  thorn_Mps_no = max(0.000, thorn_Mps_no - thorn_Fpx * thorn_G_no );
+  thorn_Mws_no = max(0.000, thorn_Mws_no - thorn_Fwx * thorn_G_no );
   
-  thorn_Mcs_po = max(0.0001, thorn_Mcs_po - thorn_Fcx * thorn_G_po );
-  thorn_Mns_po = max(0.0001, thorn_Mns_po - thorn_Fnx * thorn_G_po );
-  thorn_Mps_po = max(0.0001, thorn_Mps_po - thorn_Fnx * thorn_G_po );
-  thorn_Mws_po = max(0.0001, thorn_Mws_po - thorn_Fwx * thorn_G_po );
+  thorn_Mcs_po = max(0.000, thorn_Mcs_po - thorn_Fcx * thorn_G_po );
+  thorn_Mns_po = max(0.000, thorn_Mns_po - thorn_Fnx * thorn_G_po );
+  thorn_Mps_po = max(0.000, thorn_Mps_po - thorn_Fnx * thorn_G_po );
+  thorn_Mws_po = max(0.000, thorn_Mws_po - thorn_Fwx * thorn_G_po );
   
-  thorn_Mcs_wo = max(0.0001, thorn_Mcs_wo - thorn_Fcx * thorn_G_wo );
-  thorn_Mns_wo = max(0.0001, thorn_Mns_wo - thorn_Fnx * thorn_G_wo );
-  thorn_Mps_wo = max(0.0001, thorn_Mps_wo - thorn_Fpx * thorn_G_wo );
-  thorn_Mws_wo = max(0.0001, thorn_Mws_wo - thorn_Fwx * thorn_G_wo );
+  thorn_Mcs_wo = max(0.000, thorn_Mcs_wo - thorn_Fcx * thorn_G_wo );
+  thorn_Mns_wo = max(0.000, thorn_Mns_wo - thorn_Fnx * thorn_G_wo );
+  thorn_Mps_wo = max(0.000, thorn_Mps_wo - thorn_Fpx * thorn_G_wo );
+  thorn_Mws_wo = max(0.000, thorn_Mws_wo - thorn_Fwx * thorn_G_wo );
   
   # thorn_Mcs = max(0, thorn_Mcs + thorn_Uc - thorn_Fcx * thorn_G); # 12
   # thorn_Mns = max(0, thorn_Mns + thorn_Un - thorn_Fnx * thorn_G); # 12
@@ -413,24 +449,27 @@ wrapper_fn_mod <- function(uptake)
   thorn_Ps_wo = thorn_Mps_wo/thorn_Mxwo; #2
   thorn_Ws_wo = thorn_Mws_wo/thorn_Mxwo; #2
   
-  #  use this code to simulate a loss in shoots e.g in fire
-  if(i == 100)
-  {
-  	thorn_Mxco = thorn_Mxco*0.1;
-  	thorn_Mcs_co = thorn_Mcs_co*0.0;
-  	thorn_Mns_co = thorn_Mns_co*0.0;
-    thorn_Mps_co = thorn_Mps_co*0.0;
-  	thorn_Mws_co = thorn_Mws_co*0.0;
-  	
-  	thorn_Cs_co = thorn_Mcs_co/thorn_Mxco; #2
-  	thorn_Ns_co = thorn_Mns_co/thorn_Mxco; #2
-  	thorn_Ps_co = thorn_Mps_co/thorn_Mxco; #2
-  	thorn_Ws_co = thorn_Mws_co/thorn_Mxco; #2
-  	
-  }
+  # #  use this code to simulate a loss in shoots e.g in fire
+  # if(i == 100)
+  # {
+  # 	thorn_Mxco = thorn_Mxco*0.1;
+  # 	thorn_Mcs_co = thorn_Mcs_co*0.0;
+  # 	thorn_Mns_co = thorn_Mns_co*0.0;
+  #   thorn_Mps_co = thorn_Mps_co*0.0;
+  # 	thorn_Mws_co = thorn_Mws_co*0.0;
+  # 	
+  # 	thorn_Cs_co = thorn_Mcs_co/thorn_Mxco; #2
+  # 	thorn_Ns_co = thorn_Mns_co/thorn_Mxco; #2
+  # 	thorn_Ps_co = thorn_Mps_co/thorn_Mxco; #2
+  # 	thorn_Ws_co = thorn_Mws_co/thorn_Mxco; #2
+  # 	
+  # 	print(thorn_Cs_co)
+  # 	
+  # }
   
   # Transport resistance of each compartment 
   res_co = p_co / (thorn_Mxco)^q; # eq.4 Thornley 1998 
+  # res_co = pmin(100, p_co / (thorn_Mxco)^q); # eq.4 Thornley 1998 
   res_no = p_no / (thorn_Mxno)^q; # eq.4 Thornley 1998 
   res_po = p_po / (thorn_Mxpo)^q; # eq.4 Thornley 1998 
   res_wo = p_wo / (thorn_Mxwo)^q; # eq.4 Thornley 1998 
@@ -438,63 +477,85 @@ wrapper_fn_mod <- function(uptake)
   # Transport of substrates between compartments. Here I extend Thornley uni-directional model to 
   # make it bi-directional. 
   # NOTE: this is not complete - I need to include transport between other compartments i.e. Po to Wo, Po to No, Wo to No for C,N,P & W.
+  ##-----------------------------------------------------------------------------
+  # accounting  
+  total_c1 <- (thorn_Cs_co*thorn_Mxco) + (thorn_Fcx*thorn_Mxco) + 
+    (thorn_Cs_no*thorn_Mxno) + (thorn_Fcx*thorn_Mxno) + 
+    (thorn_Cs_po*thorn_Mxpo) + (thorn_Fcx*thorn_Mxpo) + 
+    (thorn_Cs_wo*thorn_Mxwo) + (thorn_Fcx*thorn_Mxwo) 
+  
+  total_n1 <- (thorn_Ns_co*thorn_Mxco) + (thorn_Fnx*thorn_Mxco) + 
+    (thorn_Ns_no*thorn_Mxno) + (thorn_Fnx*thorn_Mxno) + 
+    (thorn_Ns_po*thorn_Mxpo) + (thorn_Fnx*thorn_Mxpo) + 
+    (thorn_Ns_wo*thorn_Mxwo) + (thorn_Fnx*thorn_Mxwo) 
+  
+  total_p1 <- (thorn_Ps_co*thorn_Mxco) + (thorn_Fpx*thorn_Mxco) + 
+    (thorn_Ps_no*thorn_Mxno) + (thorn_Fpx*thorn_Mxno) + 
+    (thorn_Ps_po*thorn_Mxpo) + (thorn_Fpx*thorn_Mxpo) + 
+    (thorn_Ps_wo*thorn_Mxwo) + (thorn_Fpx*thorn_Mxwo) 
+  
+  total_w1 <- (thorn_Ws_co*thorn_Mxco) + (thorn_Fwx*thorn_Mxco) + 
+    (thorn_Ws_no*thorn_Mxno) + (thorn_Fwx*thorn_Mxno) + 
+    (thorn_Ws_po*thorn_Mxpo) + (thorn_Fwx*thorn_Mxpo) + 
+    (thorn_Ws_wo*thorn_Mxwo) + (thorn_Fwx*thorn_Mxwo) 
+  ##-----------------------------------------------------------------------------
   
   # carbon transport
-  Tc_co_to_no = 0.5*(thorn_Cs_co - thorn_Cs_no) / (res_co + res_no) # transport of carbon substrate from the carbon organ to the nitrogen organ
-  Tc_co_to_po = 0.5*(thorn_Cs_co - thorn_Cs_po) / (res_co + res_po) # transport of carbon substrate from the carbon organ to the phosphorus organ
-  Tc_co_to_wo = 0.5*(thorn_Cs_co - thorn_Cs_wo) / (res_co + res_wo) # transport of carbon substrate from the carbon organ to the water organ
+  Tc_co_to_no = 0.5*((thorn_Cs_co - thorn_Cs_no) / (res_co + res_no)) # transport of carbon substrate from the carbon organ to the nitrogen organ
+  Tc_co_to_po = 0.5*((thorn_Cs_co - thorn_Cs_po) / (res_co + res_po)) # transport of carbon substrate from the carbon organ to the phosphorus organ
+  Tc_co_to_wo = 0.5*((thorn_Cs_co - thorn_Cs_wo) / (res_co + res_wo)) # transport of carbon substrate from the carbon organ to the water organ
   
-  Tc_no_to_po = 0.5*(thorn_Cs_no - thorn_Cs_po) / (res_no + res_po) # transport of carbon substrate from the nitrogen organ to the phosphorus organ
-  Tc_no_to_wo = 0.5*(thorn_Cs_no - thorn_Cs_wo) / (res_no + res_wo) # transport of carbon substrate from the nitrogen organ to the water organ
-  Tc_po_to_wo = 0.5*(thorn_Cs_po - thorn_Cs_wo) / (res_po + res_wo) # transport of carbon substrate from the phosphorus organ to the water organ
+  Tc_no_to_po = 0.5*((thorn_Cs_no - thorn_Cs_po) / (res_no + res_po)) # transport of carbon substrate from the nitrogen organ to the phosphorus organ
+  Tc_no_to_wo = 0.5*((thorn_Cs_no - thorn_Cs_wo) / (res_no + res_wo)) # transport of carbon substrate from the nitrogen organ to the water organ
+  Tc_po_to_wo = 0.5*((thorn_Cs_po - thorn_Cs_wo) / (res_po + res_wo)) # transport of carbon substrate from the phosphorus organ to the water organ
   
   # print(c("Tc_cn Tc_cp Tc_cw Tc_np Tc_nw Tc_pw"))
   # print(round(c(Tc_co_to_no, Tc_co_to_po, Tc_co_to_wo, Tc_no_to_po, Tc_no_to_wo, Tc_po_to_wo),2))
   
   # nitrogen transport
-  Tn_co_to_no = 0.5*(thorn_Ns_co - thorn_Ns_no) / (res_co + res_no) # transport of nitrogen substrate from the carbon organ to the nitrogen organ
-  Tn_co_to_po = 0.5*(thorn_Ns_co - thorn_Ns_po) / (res_co + res_po) # transport of nitrogen substrate from the carbon organ to the phosphorus organ
-  Tn_co_to_wo = 0.5*(thorn_Ns_co - thorn_Ns_wo) / (res_co + res_wo) # transport of nitrogen substrate from the carbon organ to the water organ
+  Tn_co_to_no = 0.5*((thorn_Ns_co - thorn_Ns_no) / (res_co + res_no)) # transport of nitrogen substrate from the carbon organ to the nitrogen organ
+  Tn_co_to_po = 0.5*((thorn_Ns_co - thorn_Ns_po) / (res_co + res_po)) # transport of nitrogen substrate from the carbon organ to the phosphorus organ
+  Tn_co_to_wo = 0.5*((thorn_Ns_co - thorn_Ns_wo) / (res_co + res_wo)) # transport of nitrogen substrate from the carbon organ to the water organ
   
-  Tn_no_to_po = 0.5*(thorn_Ns_no - thorn_Ns_po) / (res_no + res_po) # transport of nitrogen substrate from the nitrogen organ to the phosphorus organ
-  Tn_no_to_wo = 0.5*(thorn_Ns_no - thorn_Ns_wo) / (res_no + res_wo) # transport of nitrogen substrate from the nitrogen organ to the water organ
-  Tn_po_to_wo = 0.5*(thorn_Ns_po - thorn_Ns_wo) / (res_po + res_wo) # transport of nitrogen substrate from the phosphorus organ to the water organ
+  Tn_no_to_po = 0.5*((thorn_Ns_no - thorn_Ns_po) / (res_no + res_po)) # transport of nitrogen substrate from the nitrogen organ to the phosphorus organ
+  Tn_no_to_wo = 0.5*((thorn_Ns_no - thorn_Ns_wo) / (res_no + res_wo)) # transport of nitrogen substrate from the nitrogen organ to the water organ
+  Tn_po_to_wo = 0.5*((thorn_Ns_po - thorn_Ns_wo) / (res_po + res_wo)) # transport of nitrogen substrate from the phosphorus organ to the water organ
   # phosphorus transport
-  Tp_co_to_no = 0.5*(thorn_Ps_co - thorn_Ps_no) / (res_co + res_no) # transport of phosphorus substrate from the carbon organ to the nitrogen organ
-  Tp_co_to_po = 0.5*(thorn_Ps_co - thorn_Ps_po) / (res_co + res_po) # transport of phosphorus substrate from the carbon organ to the phosphorus organ
-  Tp_co_to_wo = 0.5*(thorn_Ps_co - thorn_Ps_wo) / (res_co + res_wo) # transport of phosphorus substrate from the carbon organ to the water organ
+  Tp_co_to_no = 0.5*((thorn_Ps_co - thorn_Ps_no) / (res_co + res_no)) # transport of phosphorus substrate from the carbon organ to the nitrogen organ
+  Tp_co_to_po = 0.5*((thorn_Ps_co - thorn_Ps_po) / (res_co + res_po)) # transport of phosphorus substrate from the carbon organ to the phosphorus organ
+  Tp_co_to_wo = 0.5*((thorn_Ps_co - thorn_Ps_wo) / (res_co + res_wo)) # transport of phosphorus substrate from the carbon organ to the water organ
   
-  Tp_no_to_po = 0.5*(thorn_Ps_no - thorn_Ps_po) / (res_no + res_po) # transport of phosphorus substrate from the nitrogen organ to the phosphorus organ
-  Tp_no_to_wo = 0.5*(thorn_Ps_no - thorn_Ps_wo) / (res_no + res_wo) # transport of phosphorus substrate from the nitrogen organ to the water organ
-  Tp_po_to_wo = 0.5*(thorn_Ps_po - thorn_Ps_wo) / (res_po + res_wo) # transport of phosphorus substrate from the phosphorus organ to the water organ
+  Tp_no_to_po = 0.5*((thorn_Ps_no - thorn_Ps_po) / (res_no + res_po)) # transport of phosphorus substrate from the nitrogen organ to the phosphorus organ
+  Tp_no_to_wo = 0.5*((thorn_Ps_no - thorn_Ps_wo) / (res_no + res_wo)) # transport of phosphorus substrate from the nitrogen organ to the water organ
+  Tp_po_to_wo = 0.5*((thorn_Ps_po - thorn_Ps_wo) / (res_po + res_wo)) # transport of phosphorus substrate from the phosphorus organ to the water organ
   # water transport
-  Tw_co_to_no = 0.5*(thorn_Ws_co - thorn_Ws_no) / (res_co + res_no) # transport of water substrate from the carbon organ to the nitrogen organ
-  Tw_co_to_po = 0.5*(thorn_Ws_co - thorn_Ws_po) / (res_co + res_po) # transport of water substrate from the carbon organ to the phosphorus organ
-  Tw_co_to_wo = 0.5*(thorn_Ws_co - thorn_Ws_wo) / (res_co + res_wo) # transport of water substrate from the carbon organ to the water organ
+  Tw_co_to_no = 0.5*((thorn_Ws_co - thorn_Ws_no) / (res_co + res_no)) # transport of water substrate from the carbon organ to the nitrogen organ
+  Tw_co_to_po = 0.5*((thorn_Ws_co - thorn_Ws_po) / (res_co + res_po)) # transport of water substrate from the carbon organ to the phosphorus organ
+  Tw_co_to_wo = 0.5*((thorn_Ws_co - thorn_Ws_wo) / (res_co + res_wo)) # transport of water substrate from the carbon organ to the water organ
   
-  Tw_no_to_po = 0.5*(thorn_Ws_no - thorn_Ws_po) / (res_no + res_po) # transport of water substrate from the carbon organ to the nitrogen organ
-  Tw_no_to_wo = 0.5*(thorn_Ws_no - thorn_Ws_wo) / (res_no + res_wo) # transport of water substrate from the carbon organ to the phosphorus organ
-  Tw_po_to_wo = 0.5*(thorn_Ws_po - thorn_Ws_wo) / (res_po + res_wo) # transport of water substrate from the carbon organ to the water organ
+  Tw_no_to_po = 0.5*((thorn_Ws_no - thorn_Ws_po) / (res_no + res_po)) # transport of water substrate from the carbon organ to the nitrogen organ
+  Tw_no_to_wo = 0.5*((thorn_Ws_no - thorn_Ws_wo) / (res_no + res_wo)) # transport of water substrate from the carbon organ to the phosphorus organ
+  Tw_po_to_wo = 0.5*((thorn_Ws_po - thorn_Ws_wo) / (res_po + res_wo)) # transport of water substrate from the carbon organ to the water organ
   
-  thorn_Mcs_co = max(0.0001, thorn_Mcs_co - Tc_co_to_no - Tc_co_to_po - Tc_co_to_wo);
-  thorn_Mns_co = max(0.0001, thorn_Mns_co - Tn_co_to_no - Tn_co_to_po - Tn_co_to_wo);
-  thorn_Mps_co = max(0.0001, thorn_Mps_co - Tp_co_to_no - Tp_co_to_po - Tp_co_to_wo);
-  thorn_Mws_co = max(0.0001, thorn_Mws_co - Tw_co_to_no - Tw_co_to_po - Tw_co_to_wo);
+  thorn_Mcs_co = max(0.000, thorn_Mcs_co - Tc_co_to_no - Tc_co_to_po - Tc_co_to_wo);
+  thorn_Mns_co = max(0.000, thorn_Mns_co - Tn_co_to_no - Tn_co_to_po - Tn_co_to_wo);
+  thorn_Mps_co = max(0.000, thorn_Mps_co - Tp_co_to_no - Tp_co_to_po - Tp_co_to_wo);
+  thorn_Mws_co = max(0.000, thorn_Mws_co - Tw_co_to_no - Tw_co_to_po - Tw_co_to_wo);
 
-  thorn_Mcs_no = max(0.0001, thorn_Mcs_no - Tc_no_to_po - Tc_no_to_wo + Tc_co_to_no);
-  thorn_Mns_no = max(0.0001, thorn_Mns_no + Tn_co_to_no - Tn_no_to_po - Tn_no_to_wo);
-  thorn_Mps_no = max(0.0001, thorn_Mps_no - Tp_no_to_po - Tp_no_to_wo + Tp_co_to_no);
-  thorn_Mws_no = max(0.0001, thorn_Mws_no - Tw_no_to_po - Tw_no_to_wo + Tw_co_to_no);
+  thorn_Mcs_no = max(0.000, thorn_Mcs_no - Tc_no_to_po - Tc_no_to_wo + Tc_co_to_no);
+  thorn_Mns_no = max(0.000, thorn_Mns_no + Tn_co_to_no - Tn_no_to_po - Tn_no_to_wo);
+  thorn_Mps_no = max(0.000, thorn_Mps_no - Tp_no_to_po - Tp_no_to_wo + Tp_co_to_no);
+  thorn_Mws_no = max(0.000, thorn_Mws_no - Tw_no_to_po - Tw_no_to_wo + Tw_co_to_no);
 
-  thorn_Mcs_po = max(0.0001, thorn_Mcs_po - Tc_po_to_wo + Tc_no_to_po + Tc_co_to_po);
-  thorn_Mns_po = max(0.0001, thorn_Mns_po - Tn_po_to_wo + Tn_no_to_po + Tn_co_to_po);
-  thorn_Mps_po = max(0.0001, thorn_Mps_po - Tn_po_to_wo + Tn_no_to_po + Tn_co_to_po);
-  thorn_Mws_po = max(0.0001, thorn_Mws_po - Tw_po_to_wo + Tw_no_to_po + Tw_co_to_po);
+  thorn_Mcs_po = max(0.000, thorn_Mcs_po - Tc_po_to_wo + Tc_no_to_po + Tc_co_to_po);
+  thorn_Mns_po = max(0.000, thorn_Mns_po - Tn_po_to_wo + Tn_no_to_po + Tn_co_to_po);
+  thorn_Mps_po = max(0.000, thorn_Mps_po - Tp_po_to_wo + Tp_no_to_po + Tp_co_to_po);
+  thorn_Mws_po = max(0.000, thorn_Mws_po - Tw_po_to_wo + Tw_no_to_po + Tw_co_to_po);
 
-  thorn_Mcs_wo = max(0.0001, thorn_Mcs_wo + Tc_co_to_wo + Tc_no_to_wo + Tc_po_to_wo);
-  thorn_Mns_wo = max(0.0001, thorn_Mns_wo + Tn_co_to_wo + Tn_no_to_wo + Tn_po_to_wo);
-  thorn_Mps_wo = max(0.0001, thorn_Mps_wo + Tp_co_to_wo + Tp_no_to_wo + Tp_po_to_wo);
-  thorn_Mws_wo = max(0.0001, thorn_Mws_wo + Tw_co_to_wo + Tw_no_to_wo + Tw_po_to_wo);
+  thorn_Mcs_wo = max(0.000, thorn_Mcs_wo + Tc_co_to_wo + Tc_no_to_wo + Tc_po_to_wo);
+  thorn_Mns_wo = max(0.000, thorn_Mns_wo + Tn_co_to_wo + Tn_no_to_wo + Tn_po_to_wo);
+  thorn_Mps_wo = max(0.000, thorn_Mps_wo + Tp_co_to_wo + Tp_no_to_wo + Tp_po_to_wo);
+  thorn_Mws_wo = max(0.000, thorn_Mws_wo + Tw_co_to_wo + Tw_no_to_wo + Tw_po_to_wo);
   
   thorn_Cs_co = thorn_Mcs_co/thorn_Mxco; #2
   thorn_Ns_co = thorn_Mns_co/thorn_Mxco; #2
@@ -515,6 +576,47 @@ wrapper_fn_mod <- function(uptake)
   thorn_Ns_wo = thorn_Mns_wo/thorn_Mxwo; #2
   thorn_Ps_wo = thorn_Mps_wo/thorn_Mxwo; #2
   thorn_Ws_wo = thorn_Mws_wo/thorn_Mxwo; #2
+  
+  ##-----------------------------------------------------------------------------
+  # accounting  
+  total_c2 <- (thorn_Cs_co*thorn_Mxco) + (thorn_Fcx*thorn_Mxco) + 
+    (thorn_Cs_no*thorn_Mxno) + (thorn_Fcx*thorn_Mxno) + 
+    (thorn_Cs_po*thorn_Mxpo) + (thorn_Fcx*thorn_Mxpo) + 
+    (thorn_Cs_wo*thorn_Mxwo) + (thorn_Fcx*thorn_Mxwo) 
+  
+  total_n2 <- (thorn_Ns_co*thorn_Mxco) + (thorn_Fnx*thorn_Mxco) + 
+    (thorn_Ns_no*thorn_Mxno) + (thorn_Fnx*thorn_Mxno) + 
+    (thorn_Ns_po*thorn_Mxpo) + (thorn_Fnx*thorn_Mxpo) + 
+    (thorn_Ns_wo*thorn_Mxwo) + (thorn_Fnx*thorn_Mxwo) 
+  
+  total_p2 <- (thorn_Ps_co*thorn_Mxco) + (thorn_Fpx*thorn_Mxco) + 
+    (thorn_Ps_no*thorn_Mxno) + (thorn_Fpx*thorn_Mxno) + 
+    (thorn_Ps_po*thorn_Mxpo) + (thorn_Fpx*thorn_Mxpo) + 
+    (thorn_Ps_wo*thorn_Mxwo) + (thorn_Fpx*thorn_Mxwo) 
+  
+  total_w2 <- (thorn_Ws_co*thorn_Mxco) + (thorn_Fwx*thorn_Mxco) + 
+    (thorn_Ws_no*thorn_Mxno) + (thorn_Fwx*thorn_Mxno) + 
+    (thorn_Ws_po*thorn_Mxpo) + (thorn_Fwx*thorn_Mxpo) + 
+    (thorn_Ws_wo*thorn_Mxwo) + (thorn_Fwx*thorn_Mxwo) 
+  ##-----------------------------------------------------------------------------
+  print("##-----------------------------------------------------------------------------")
+  print("total_c1")
+  print(total_c1)
+  print("total_c2")
+  print(total_c2)
+  print("total_n1")
+  print(total_n1)
+  print("total_n2")
+  print(total_n2)
+  print("total_p1")
+  print(total_p1)
+  print("total_p2")
+  print(total_p2)
+  print("total_w1")
+  print(total_w1)
+  print("total_w2")
+  print(total_w2)
+  print("##-----------------------------------------------------------------------------")
   
   thorn_Fxco = thorn_Mxco/thorn_Mx; #4
   thorn_Fxwo = thorn_Mxwo/thorn_Mx; #4
@@ -701,6 +803,13 @@ legend("topleft",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M)[c(1:4)],ce
 matplot(M[,5:8],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, ylim=c(0,1), ylab="Proportion of structural mass in plant compartments)")
 legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M)[5:8],cex=1.0)
 
+Mr.poo <- M[,48:50]
+Mr.poo[(Mr.poo[] > 0)] <- 1
+Mr.poo[(Mr.poo[] < 0)] <- -1
+matplot((Mr.poo[,1:3]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F, ylab="Carbon organ transfer of substrate", ylim=c(-1.01, 1.01))
+abline(h=0, lty=2, lwd=0.5)
+legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M1)[c(48:50)],cex=1.0)
+
 matplot((M[,48:50]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F, ylab="Carbon organ transfer of substrate")
 abline(h=0, lty=2, lwd=0.5)
 legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M)[c(48:50)],cex=1.0)
@@ -787,6 +896,13 @@ legend("topleft",col=mycol[c(1:4)],lty=c(rep(1,4)),legend=colnames(M1)[c(1:4)],c
 matplot(M1[,5:8],type="l",lty=c(rep(1,4)),col=mycol,lwd=2,add=F, ylim=c(0,1), ylab="Proportion of structural mass in plant compartments)")
 legend("topright",col=mycol[c(1:4,1:4)],lty=c(rep(1,4),rep(2,4)),legend=colnames(M1)[5:8],cex=1.0)
 
+Mr.poo <- M1[,48:50]
+Mr.poo[(Mr.poo[] > 0)] <- 1
+Mr.poo[(Mr.poo[] < 0)] <- -1
+matplot((Mr.poo[,1:3]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F, ylab="Carbon organ transfer of substrate", ylim=c(-1.01, 1.01))
+abline(h=0, lty=2, lwd=0.5)
+legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M1)[c(48:50)],cex=1.0)
+
 matplot((M1[,48:50]),type="l",lty=c(rep(1,4)),col=mycol[1:4],lwd=2,add=F, ylab="Carbon organ transfer of substrate")
 abline(h=0, lty=2, lwd=0.5)
 legend("topleft",col=mycol[1:4],lty=c(rep(1,4)),legend=colnames(M1)[c(48:50)],cex=1.0)
@@ -838,7 +954,7 @@ legend("topleft",col=mycol,lty=c(rep(1,4)),legend=colnames(M1)[c(28, 32, 36, 40)
 graphics.off()
 
 
-print(tail(M))
+print(M[99:110,])
 
 # 
 # evapotr_ = 0 #53629576106646967e-06
